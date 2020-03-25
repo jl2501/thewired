@@ -87,7 +87,7 @@ class FilteredCollection(collections.abc.Sequence):
             this is a property so it can be accessed as an attribute, but so that it
             always returns the current run-time version of itself
         Output:
-            length of the filtered collection
+            list of the filtered collection
         TODO: cache it; update when filters / elements are updated
         '''
         filtered_collection = self._collection
@@ -124,27 +124,27 @@ class FilteredCollection(collections.abc.Sequence):
         log.debug('enter: eval_string: {} | formatter:{}'.format(eval_string, formatter))
         results = self._collection_factory()
 
-        for c_x in self._filtered_collection:
+        for c in self._filtered_collection:
             try:
-                result_x = eval('c_x{}'.format(eval_string))
-                log.debug('result: {}'.format(result_x))
+                result = eval('c{}'.format(eval_string))
+                log.debug('result: {}'.format(result))
                 if callable(formatter):
-                    result_x = formatter(result_x)
+                    result = formatter(result)
             except AttributeError:
                 log.debug('eval "{}": AttributeError'.format(eval_string))
-                result_x = FAIL_CANARY_ATTRIBUTE
+                result = FAIL_CANARY_ATTRIBUTE
             except TypeError:
                 log.debug('eval "{}": TypeError'.format(eval_string))
-                result_x = FAIL_CANARY_TYPE
+                result = FAIL_CANARY_TYPE
             except NameError:
                 log.debug('eval "{}": NameError'.format(eval_string))
-                result_x = FAIL_CANARY_NAME
+                result = FAIL_CANARY_NAME
 
             #- keep a single flat collection
-            if isinstance(result_x, collections.abc.Sequence):
-                results.extend(result_x)
+            if isinstance(result, collections.abc.Sequence):
+                results.extend(result)
             else:
-                results.append(result_x)
+                results.append(result)
 
         
         if results:
