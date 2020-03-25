@@ -1,0 +1,156 @@
+import unittest
+
+import thewired.namespace 
+from thewired.namespace.nsid import make_child_nsid
+from thewired.exceptions import InvalidNsidError, NamespaceLookupError
+from thewired.exceptions import NamespaceCollisionError
+from thewired.namespace import Namespace, NamespaceNodeBase
+
+class TestNamespace(unittest.TestCase):
+    def test_default_instantiation(self):
+        ns = thewired.namespace.Namespace()
+
+    def test_prefixed_instantation(self):
+        ns = thewired.namespace.Namespace(prefix='.prefix_test')
+        self.assertEqual(ns.prefix, '.prefix_test')
+
+    def test_get_root_node(self):
+        ns = Namespace()
+        root = ns.get('.')
+        self.assertEqual(ns.root, root)
+
+    def test_add_node_return1(self):
+        ns = Namespace()
+        new_nsid = '.a'
+        new_nodes = ns.add(new_nsid)
+        #- add returns all the new nodes created in order of creation
+        #- so the last one in the list will be the deepest child
+        new_node = new_nodes[-1]
+        self.assertEqual(str(new_nodes[-1].nsid), new_nsid)
+
+    def test_add_node_return2(self):
+        ns = Namespace()
+        new_nsid = '.a.b'
+        new_nodes = ns.add(new_nsid)
+        #- add returns all the new nodes created in order of creation
+        #- so the last one in the list will be the deepest child
+        new_node = new_nodes[-1]
+        self.assertEqual(str(new_nodes[-1].nsid), new_nsid)
+
+
+    def test_add_bad_node1(self):
+        ns = Namespace()
+        new_nsid = 'a'
+        with self.assertRaises(InvalidNsidError):
+            new_nodes = ns.add(new_nsid)
+
+    def test_add_bad_node2(self):
+        ns = Namespace()
+        new_nsid = 'a.b'
+        with self.assertRaises(InvalidNsidError):
+            new_nodes = ns.add(new_nsid)
+
+    def test_add_then_get_new_node(self):
+        ns = Namespace()
+        new_nsid = '.a.b.c.d.e'
+        ns.add(new_nsid)
+        node = ns.get(new_nsid)
+        self.assertEqual(new_nsid, str(node.nsid))
+
+    def test_add_then_get_ancestor(self):
+        ns = Namespace()
+        parent_nsid = '.a.b.c.d.e'
+        child_nsid = make_child_nsid(parent_nsid, 'f')
+        ns.add(child_nsid)
+        node = ns.get(parent_nsid)
+        self.assertEqual(parent_nsid, str(node.nsid))
+
+    def test_add_then_get_bad(self):
+        ns = Namespace()
+        new_nsid = '.a.b.c.d.e'
+        bad_new_nsid = '.a.b.c.d.e.f'
+        ns.add(new_nsid)
+        with self.assertRaises(NamespaceLookupError):
+            node = ns.get(bad_new_nsid)
+
+    def test_delete_node(self):
+        ns = Namespace()
+        new_nsid = '.a.b.c.d'
+        ns.add(new_nsid)
+        node = ns.remove(new_nsid)
+        self.assertEqual(str(node.nsid), new_nsid)
+        with self.assertRaises(NamespaceLookupError):
+            ns.get(new_nsid)
+
+    def test_new_node_with_prefix(self):
+        ns = Namespace(prefix='.some.short.prefix')
+        new_node = ns.add('.some.short.prefix.and')[-1]
+        self.assertEqual(str(new_node.nsid), '.some.short.prefix.and')
+
+    def test_add_exactly_one_happy_path(self):
+        ns = Namespace()
+        nsid = '.one_new_node'
+        new_node = ns.add_exactly_one(nsid)
+        self.assertEqual(str(new_node.nsid), nsid)
+
+    def test_add_exactly_one_bad_input(self):
+        ns = Namespace()
+        nsid = '.two.nodes'
+        with self.assertRaises(ValueError):
+            new_node = ns.add_exactly_one(nsid)
+
+        nsid = '.now.three.nodes'
+        with self.assertRaises(ValueError):
+            new_node = ns.add_exactly_one(nsid)
+    
+    def test_add_root_node(self):
+        ns = Namespace()
+        with self.assertRaises(NamespaceCollisionError):
+            ns.add_exactly_one('.')
+
+    def test_default_node_factory_bad_input(self):
+        def bad_factory(x=None):
+            pass
+        with self.assertRaises(ValueError):
+            ns = Namespace(default_node_factory=bad_factory)
+        with self.assertRaises(ValueError):
+          ns = Namespace(default_node_factory=['a','list','?'])
+
+    def test_default_node_factory(self):
+        class NewNamespaceNodeBase(NamespaceNodeBase):
+            def __init__(self, nsid=None):
+                super().__init__(nsid=nsid)
+
+        ns = Namespace(default_node_factory=NewNamespaceNodeBase)
+        new_nodes = ns.add('.this.is.all.new')
+
+        for node in new_nodes:
+            self.assertIsInstance(node, NewNamespaceNodeBase)
+
+    def test_basic_walk(self):
+        ns = Namespace()
+        self.assertEqual({"." : {}}, ns.walk())
+
+    def test_walk(self):
+        ns = Namespace()
+        ns.add('.all.work.no_play.dull_boy')
+        ns.add('.hackers.on.planet.earth')
+        test_dict = {
+            "." : {
+                "all" : {
+                    "work" : {
+                        "no_play" :  {
+                            "dull_boy" : {}
+                        }
+                    }
+                },
+                "hackers" : {
+                    "on" : {
+                        "planet" : {
+                            "earth" : {}
+                        }
+                    }
+                }
+            }
+        }
+        self.assertEqual(ns.walk(), test_dict)
