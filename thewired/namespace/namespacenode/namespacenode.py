@@ -324,8 +324,9 @@ class NamespaceNode(SimpleNamespace):
                             return self._lookup_symbolic_ref(obj)
 
                     except AttributeError as err:
-                        log.error('Failed to find value for [{}] in [{}]'.format(namespace_id,\
-                            self._nsid))
+                        log.error('thewired Failed to find value for [{}] in [{}]'.format(
+                                namespace_id,
+                                self._nsid))
                         raise NamespaceLookupError("{}.{}".format(self._nsid, namespace_id)) from err
 
             return obj
