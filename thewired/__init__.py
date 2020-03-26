@@ -1,3 +1,6 @@
+__version__ = "0.0.1"
+
+
 from .filteredcollection import FilteredCollection
 from thewired.provider import Provider, get_provider_classes
 from thewired.provider import AddendumFormatter, ParametizedCall, ProviderMap

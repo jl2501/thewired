@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "thewired"
-version = "0.1.0"
+version = "0.0.1"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["James Light <j.gareth.light@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^2.7"
+python = "^3.7"
 
 [tool.poetry.dev-dependencies]
 pytest = "^4.6"
