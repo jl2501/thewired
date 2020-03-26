@@ -5,7 +5,7 @@ description = ""
 authors = ["James Light <j.gareth.light@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^4.6"
