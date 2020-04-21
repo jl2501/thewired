@@ -4,6 +4,7 @@ __version__ = "0.0.1"
 from .filteredcollection import FilteredCollection
 from thewired.provider import Provider, get_provider_classes
 from thewired.provider import AddendumFormatter, ParametizedCall, ProviderMap
+from .namespace import Namespace
 from .namespace import NamespaceNode
 from .namespace import NamespaceNodeBase
 from .namespaceconfigparser import NamespaceConfigParser
