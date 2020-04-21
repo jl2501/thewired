@@ -1,6 +1,7 @@
 import collections
 import typing
 
+from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Dict
 from .namespace import NamespaceNode
@@ -130,7 +131,7 @@ class NamespaceConfigParser(object):
                     msg = "Can't set raw item wihout parent node"
                     raise NamespaceConfigParsingError(msg)
 
-            elif isinstance(dictConfig[key], collections.Mapping):
+            elif isinstance(dictConfig[key], Mapping):
                 log.debug('dictConfig[{}] is another dictConfig'.format(key))
 
                 #- recursive case
