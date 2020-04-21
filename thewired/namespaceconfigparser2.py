@@ -24,7 +24,7 @@ class NamespaceConfigParser2(object):
                 thewired.namespace.Namespace class ATM
         """
         class_name = self.__class__.__name__
-        log = LoggerAdapter(logger, {'name_ext' : f'{class_name}'})
+        log = LoggerAdapter(logger, {'name_ext' : f'{class_name}.parse'})
 
         ns = namespace if namespace else namespace_factory()
 
@@ -32,9 +32,9 @@ class NamespaceConfigParser2(object):
             return
 
         for key in dictConfig.keys():
-            new_node_nsid = nsid.make_child_nsid(prefix, key)       # give it a name
+            new_node_nsid = nsid.make_child_nsid(prefix, key)
             log.debug(f"{new_node_nsid=}")
-            new_node = ns.add_exactly_one(new_node_nsid)            # add one level
+            new_node = ns.add_exactly_one(new_node_nsid)
 
             if isinstance(dictConfig[key], Mapping):
                self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid, namespace=ns)
