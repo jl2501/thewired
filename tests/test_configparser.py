@@ -47,6 +47,6 @@ class test_NamespaceConfigParser2(unittest.TestCase):
             }
         }
 
-        nscp = NamespaceConfigParser2(prefix=None)
+        nscp = NamespaceConfigParser2(prefix='')
         ns = nscp.parse(dictConfig=test_dict)
         print(dir(ns))
