@@ -203,30 +203,27 @@ class Namespace(SimpleNamespace):
         return node
 
 
-    def walk(self, nsid=None, d=None, cur_key=None):
+    def walk(self, start=None, walk_dict=None, call_depth=1):
         """
         Description:
             walk the namespace nodes
-        Input:
-            d: recusrive parameter - building dictionary that will be returned
         Output:
             Dictionary representing the namespace's structure
         """
-        nsid = nsid if nsid else str(self.root.nsid)
-        d = d if d else {"." : {}}
-        cur_key = cur_key if cur_key else str(self.root.nsid)
+        if start is None:
+            start = self.root
 
-        try:
-            node = self.get(nsid)
-        except NamespaceLookupError:
-            raise NamespaceLookupError(f"Namespace.walk: error: walk cant get node with nsid \"{nsid}\"")
+        if walk_dict is None:
+            walk_dict = dict()
 
-        for possible_node_name in dir(node):
-            if isinstance(node, NamespaceNodeBase):
-                dkey = nsid_basename(str(node.nsid))
-                d[cur_key][possible_node_name] = {}
-                self.walk(nsid=str(node.nsid),d=d,cur_key=possible_node_name)
-            else:
-                print(f"ns walk: skipping {possible_node}")
+        if not isinstance(start, NamespaceNodeBase):
+            return dict()
 
-        return d
+        key = nsid_basename(start.nsid.nsid)
+        walk_dict[key] = dict()
+
+        for attr_name in dir(start):
+            if not attr_name.startswith('_'):
+                updated_walk = self.walk(start=getattr(start, attr_name),
+                                    walk_dict=walk_dict[key], call_depth=call_depth+1)
+        return walk_dict
