@@ -33,7 +33,6 @@ class NamespaceConfigParser2(object):
 
         for key in dictConfig.keys():
             new_node_nsid = nsid.make_child_nsid(prefix, key)       # give it a name
-            print(f"{new_node_nsid=}")
             log.debug(f"{new_node_nsid=}")
             new_node = ns.add_exactly_one(new_node_nsid)            # add one level
 
