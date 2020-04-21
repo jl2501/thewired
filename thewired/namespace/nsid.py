@@ -89,7 +89,6 @@ def validate_nsid(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
 
 def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
     log = make_log_adapter(logger, None, 'is_valid_nsid_str')
-    valid_nsid = False
 
     if isinstance(nsid, Nsid):
         #- already has been validated
@@ -106,6 +105,7 @@ def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
         else:
             parts = get_nsid_parts(nsid)
             if len(parts) > 1:
+                valid_nsid = False
                 for n, part in enumerate(parts):
                     if not isinstance(part, str):
                        break
@@ -154,11 +154,13 @@ def sanitize_nsid(nsid, separator='.'):
 
 
 def make_child_nsid(parent_nsid, child, separator='.'):
+    log = make_log_adapter(logger, None, 'make_child_nsid') 
     if is_valid_nsid_str(parent_nsid, separator=separator):
         if  is_valid_nsid_str(child, separator=separator):
-            if parent_nsid == separator:
-                parent_nsid = ''
-            return separator.join([parent_nsid, child])
+            if parent_nsid == separator:    #is root?
+                return separator.join(['', child])
+            else:
+                return separator.join([parent_nsid, child])
         else:
             raise InvalidNsidError(f'invalid child NSID "{child}"')
     else:
