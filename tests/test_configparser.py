@@ -29,7 +29,7 @@ class test_NamespaceConfigParser1(unittest.TestCase):
 
 
 
-class test_NamespaceConfigParser2(unittest.TestCase):
+class test_NamespaceConfigParser2():
     def test_NamespaceConfigParser_instantation(self):
         nscp = NamespaceConfigParser2()
 
@@ -49,4 +49,4 @@ class test_NamespaceConfigParser2(unittest.TestCase):
 
         nscp = NamespaceConfigParser2(prefix='')
         ns = nscp.parse(dictConfig=test_dict)
-        print(dir(ns))
+        assert isinstance(ns.hackers, NamespaceNodeBase)
