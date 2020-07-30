@@ -7,4 +7,4 @@ Purpose:
     semantics to specific use cases.
 """
 from .namespacenode import NamespaceNode
-from .namespacenodebase import NamespaceNodeBase
+from .base_node import NamespaceNodeBase
