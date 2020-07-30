@@ -518,7 +518,11 @@ class NamespaceNode(SimpleNamespace):
     def _list_leaves(self, nsids=False, cur_nsid=None):
         """
         Description:
-            recursive iteration
+            return a list of all the leaf nodes
+        Input:
+            nsids:
+                - True: return a list of pairs of (nsid, leaf_node)
+                - False: return a list of leaf_node's
         """
         log = LoggerAdapter(logger, {'name_ext' : 'NamespaceNode._list_leaves'})
         log.debug("invoked on: {} | cur_nsid: {} ".format(self._nsid, cur_nsid))
@@ -526,6 +530,7 @@ class NamespaceNode(SimpleNamespace):
 
         for nsid, ns_item in self._all(nsids=True):
             try:
+                #- if an object has this method, we don't consider it a leaf itself
                 next_leaves = ns_item._list_leaves(nsids=nsids, cur_nsid=nsid)
                 log.debug("extending with {}".format(next_leaves))
                 leaves += next_leaves
