@@ -146,7 +146,7 @@ def sanitize_nsid(nsid, separator='.'):
     """
     log = make_log_adapter(logger, None, 'sanitize_nsid')
     try:
-        sanitized_nsid = re.sub(f"\{separator}\{separator}+", ".", nsid)
+        sanitized_nsid = re.sub(f"{separator}{separator}+", ".", nsid)
     except (NameError, TypeError) as err:
         raise NsidSanitizationError(f'error sanitizing nsid {nsid}: {err}')
     else:
