@@ -25,7 +25,11 @@ jobs:
       with:
           create_virtualenvs: True
 
-    - name: Run Pytest
+    - name: Install deps
       run: |
-        poetry run python -m pytest tests/
+        poetry install
+
+    - name: run pytest
+      run: |
+          poetry run python -m pytest tests/
 
