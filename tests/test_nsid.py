@@ -117,5 +117,11 @@ class test_nsid(unittest.TestCase):
     def test_get_basename(self):
         nsid = Nsid('.a.b.c.d.e.f')
         self.assertEqual(nsid_basename(nsid), 'f')
+
+    def test_nsid_with_spaces(self):
+        nsid = '.a b c.'
+        with self.assertRaises(InvalidNsidError):
+            validate_nsid(nsid)
+
 if __name__ == '__main__' :
     unittest.main()
