@@ -98,6 +98,9 @@ def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
         return True
 
     if isinstance(nsid, str):
+        if ' ' in nsid:
+            return False
+
         if nsid == separator:
             return nsid_root_ok
         elif symrefs_ok and is_valid_symref_str(nsid, separator=separator):
