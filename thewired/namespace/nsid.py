@@ -55,7 +55,7 @@ class Nsid(NsidBase):
         concepts such as symbolic references ("symlinks" in FS-world)
     """
 
-    def __init__(self, nsid):
+    def __init__(self, nsid, fully_qualified=False):
         """
         Inputs:
             nsid: the string to be converted into an NSID
@@ -64,7 +64,7 @@ class Nsid(NsidBase):
         log = make_log_adapter(logger, self.__class__, '__init__')
         self.nsid = ''
 
-        validate_nsid(nsid, symrefs_ok=False)
+        validate_nsid(nsid, symrefs_ok=False, fully_qualified=fully_qualified)
         log.debug(f'nsid validated: {nsid}')
         self.nsid = str(nsid)
 
@@ -82,12 +82,12 @@ class Nsid(NsidBase):
 
 
 
-def validate_nsid(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
-    if not is_valid_nsid_str(nsid, symrefs_ok=symrefs_ok, separator=separator):
+def validate_nsid(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.', fully_qualified=True):
+    if not is_valid_nsid_str(nsid, symrefs_ok=symrefs_ok, separator=separator, fully_qualified=fully_qualified):
         raise InvalidNsidError(f'invalid NSID: "{nsid}"')
 
 
-def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
+def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.', fully_qualified=True):
     log = make_log_adapter(logger, None, 'is_valid_nsid_str')
 
     if isinstance(nsid, Nsid):
@@ -96,6 +96,9 @@ def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.'):
         #- with an Nsid object that has been reassigned after validation
         #- using internal properties,but, its python, so thats acceptable
         return True
+
+    if fully_qualified and nsid[0] != separator:
+        return False
 
     if isinstance(nsid, str):
         if ' ' in nsid:
@@ -158,8 +161,8 @@ def sanitize_nsid(nsid, separator='.'):
 
 def make_child_nsid(parent_nsid, child, separator='.'):
     log = make_log_adapter(logger, None, 'make_child_nsid') 
-    if is_valid_nsid_str(parent_nsid, separator=separator):
-        if  is_valid_nsid_str(child, separator=separator):
+    if is_valid_nsid_str(parent_nsid, separator=separator, fully_qualified=False):
+        if  is_valid_nsid_str(child, separator=separator, fully_qualified=False):
             if parent_nsid == separator:    #is root?
                 return separator.join(['', child])
             else:

@@ -8,4 +8,5 @@ Purpose:
 """
 from .namespacenode import NamespaceNode
 from .base import NamespaceNodeBase
-from .mapped import MappedAttributesNode
+from .secondlife import SecondLifeNode
+from .callable import CallableNodeMixin

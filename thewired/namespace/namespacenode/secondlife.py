@@ -15,21 +15,31 @@ Purpose:
 from .base import NamespaceNodeBase
 from thewired.namespace.nsid import is_valid_nsid_str
 
-class MappedAttributesNode(NamespaceNodeBase):
-    def __init__(self, nsid, attribute_map=None):
+class SecondLifeNode(NamespaceNodeBase):
+    def __init__(self, nsid, secondlife=None):
+        """
+        Input:
+            nsid: NSID string
+            secondlife: attribute mapping dict
+                keys are nams of attributes to find in this node
+                values are either:
+                    * callable - value of attribute is return value of callable
+                    * NSID - value of the attribute is return value from invoking the Node given by the NSID
+                    * anything else - if it doesn't match the others, return this value exactly as it is
+        """
         super().__init__(nsid)
-        self._attribute_map = attribute_map
+        self._secondlife = secondlife
 
     def __getattr__(self, attr):
-        attr_value = None
-        raw_attr_value = self._attribute_map.get(attr, None)
+        secondlife_value = None
+        raw_attr_value = self._secondlife.get(attr, None)
 
         if not raw_attr_value:
             raise AttributeError(f"No such attribute: {attr}")
 
         if callable(raw_attr_value):
             provider = raw_attr_value
-            attr_value = provider()
+            secondlife_value = provider()
         elif is_valid_nsid_str(raw_attr_value):
             print(f"VALID NSID DETECTED: {raw_attr_value}")
             pass
@@ -37,18 +47,6 @@ class MappedAttributesNode(NamespaceNodeBase):
         else:
             #- provider is not a callable nor an NSID
             #- whatever it is, just return it raw
-            attr_value = raw_attr_value
+            secondlife_value = raw_attr_value
 
-        return attr_value
-
-#- SecondLifeNode/ SecondLifeMapNode might be a more clear name
-#- as essentially we just make a second __dict__ lookup in
-#- our own internal mapping if python's normal attribute lookup fails
-#- (in which case it will call __getattr__ if defined, and thus we do)
-#- so its kinda like the attribute has a second life, or a second chance
-#- to be found if a theres an entry for it in this mapping and to figure out
-#- what we want the run time value to be, the value object in the second life mapping
-#- can also be a callable, in which case we call the object to obtain the value for the attribute
-#- It can also be a namespace ID (nsid) in which case we will attempt to look up a namespace object
-#- by that name and then invoke it, returning the value of this invocation.
-SecondLifeMapNode = MappedAttributesNode
+        return secondlife_value

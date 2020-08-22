@@ -21,7 +21,7 @@ class test_nsid(unittest.TestCase):
 
     def test_is_valid_nsid_str1(self):
         nsid = 'a.b.c'
-        self.assertTrue(is_valid_nsid_str(nsid))
+        self.assertTrue(is_valid_nsid_str(nsid, fully_qualified=False))
 
     def test_is_valid_nsid_str2(self):
         nsid = 'a.'
@@ -51,8 +51,8 @@ class test_nsid(unittest.TestCase):
         self.assertEqual(make_child_nsid(parent, child), '.a')
 
     def test_get_parent_nsid1(self):
-        nsid = 'a.b.c.d'
-        self.assertEqual('a.b.c', get_parent_nsid(nsid))
+        nsid = '.a.b.c.d'
+        self.assertEqual('.a.b.c', get_parent_nsid(nsid))
 
     def test_get_parent_nsid2(self):
         nsid = '.a.b.c.d'
@@ -120,6 +120,10 @@ class test_nsid(unittest.TestCase):
 
     def test_nsid_with_spaces(self):
         nsid = '.a b c.'
+        with self.assertRaises(InvalidNsidError):
+            validate_nsid(nsid)
+    def test_relative_nsid(self):
+        nsid='a.b.c'
         with self.assertRaises(InvalidNsidError):
             validate_nsid(nsid)
 
