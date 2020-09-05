@@ -9,4 +9,4 @@ Purpose:
 from .namespacenode import NamespaceNode
 from .base import NamespaceNodeBase
 from .secondlife import SecondLifeNode
-from .callable import CallableNodeMixin
+from .dunders import CallableMixin

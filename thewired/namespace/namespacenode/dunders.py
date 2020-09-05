@@ -6,9 +6,12 @@ the logical namespace navigation xp.
 a CallableNodeMixin is a namespace node Mixin that defines __call__ and thus can be invoked / called
 """
 
-class CallableNodeMixin(object):
+class CallableMixin(object):
     """
-    A Namespace Node with a __call__ method registered in the native slots
+    Inherit from this to get A Namespace Node with a __call__ method registered in the native slots
     """
     def __call__(self, *args, **kwargs):
-        return self.invoke(*args, **kwargs)
+        try:
+            return self._call(*args, **kwargs)
+        except AttributeError:
+            return None
