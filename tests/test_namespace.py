@@ -40,12 +40,14 @@ class TestNamespace(unittest.TestCase):
 
     def test_add_bad_node1(self):
         ns = Namespace()
+        # nsids must start with a dot
         new_nsid = 'a'
         with self.assertRaises(InvalidNsidError):
             new_nodes = ns.add(new_nsid)
 
     def test_add_bad_node2(self):
         ns = Namespace()
+        # nsids must start with a dot
         new_nsid = 'a.b'
         with self.assertRaises(InvalidNsidError):
             new_nodes = ns.add(new_nsid)
