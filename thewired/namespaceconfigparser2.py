@@ -27,7 +27,7 @@ class NamespaceConfigParser2(object):
         Output:
             a namespace object representing the nodes specifed in the dictConfig object
         """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.parse')
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.parse'))
 
         ns = namespace if namespace else namespace_factory()
 
