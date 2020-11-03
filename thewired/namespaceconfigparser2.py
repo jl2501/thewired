@@ -20,11 +20,14 @@ class NamespaceConfigParser2(object):
             configDict - the configuration file parsed into a dictionary
             prefix - the rolling prefix for this parse, used to collect when recursively
                 called
-            namespace_factory - what creates the namespace object. Only tested with
-                thewired.namespace.Namespace class ATM
+            namespace - what namespace to add the new nodes parsed to 
+                        (if not specified, will use namespace_factory to create a new one)
+            namespace_factory - creates a new namespace object when an existing one is not passed in via `namespace`
+                                Only tested with thewired.namespace.Namespace class ATM
+        Output:
+            a namespace object representing the nodes specifed in the dictConfig object
         """
-        class_name = self.__class__.__name__
-        log = LoggerAdapter(logger, {'name_ext' : f'{class_name}.parse'})
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.parse')
 
         ns = namespace if namespace else namespace_factory()
 
