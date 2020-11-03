@@ -2,7 +2,7 @@
 Purpose:
     provide a single API for all user code interacting with NamespaceNodes
 
-Other:
+Notes:
     namespaces are made up of namespacenodes
     they have a root node and other properties which are all encoded here
 
@@ -36,6 +36,7 @@ class Namespace(SimpleNamespace):
         """
         Input:
             prefix: what namespace prefix is applied to all nodes in this namespace
+            default_node_factory: default factory for creating new Nodes in this namespace
         """
         self.log = LoggerAdapter(logger,
             {'name_ext' : f'{self.__class__.__name__}.__init__'})
@@ -83,9 +84,9 @@ class Namespace(SimpleNamespace):
         self._validate_namespace_nsid_head(nsid)
         _nsid_ = Nsid(nsid)
         current_node = self.root
-        n = 0
         nsid_segments = list_nsid_segments(nsid)[1:] #- skip initial root segment
 
+        n = 0
         while current_node.nsid != _nsid_:
             self.log.debug(f"current_node.nsid != nsid | {current_node.nsid} != {nsid}")
             nsid_segment = nsid_segments[n]
@@ -105,7 +106,7 @@ class Namespace(SimpleNamespace):
             Input:
                 nsid: the nsid to create in this namespace
                 node_factory: what factory to use to create the node
-                    NOTE: parent nodes will be created with the NamespaceNodeBase type
+                    NOTE: parent nodes will be created with this namespaces default_node_factory method
                 *args: passed into the node_factory as args
                 **kwargs: passed into the node_factory as kwargs
         """
@@ -130,12 +131,12 @@ class Namespace(SimpleNamespace):
             raise NamespaceCollisionError(f'A node with the nsid "{nsid}" already exists in the namespace.')
 
         #- if here, we have a valid deepest ancestor to start from
-        child_nsid_tail = strip_common_prefix(deepest_ancestor.nsid.nsid, nsid)[1]
-        common_prefix = find_common_prefix(deepest_ancestor.nsid.nsid, nsid)
+        child_nsid_tail = strip_common_prefix(str(deepest_ancestor.nsid), str(_nsid))[1]
+        common_prefix = find_common_prefix(str(deepest_ancestor.nsid), str(_nsid))
         created_nodes = list()      #- keep track of all the nodes we create to return them
         nsid_segments = list_nsid_segments(child_nsid_tail)
         for i,child_attribute_name in enumerate(nsid_segments):
-            new_node_nsid = make_child_nsid(deepest_ancestor.nsid.nsid, child_attribute_name)
+            new_node_nsid = make_child_nsid(str(deepest_ancestor.nsid), child_attribute_name)
             #- use the node factory on the last node only
             if i == len(nsid_segments) - 1:
                 new_node = node_factory(new_node_nsid)
@@ -181,11 +182,10 @@ class Namespace(SimpleNamespace):
         return new_nodes[0]
 
 
-
     def remove(self, nsid: Union[str, Nsid]) -> NamespaceNodeBase:
         """
         Description:
-            remove a node from the namespace
+            remove a node and all of its children from the namespace
         Input:
             nsid: the nsid of the node to remove
 
