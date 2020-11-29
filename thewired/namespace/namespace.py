@@ -139,7 +139,7 @@ class Namespace(SimpleNamespace):
             new_node_nsid = make_child_nsid(str(deepest_ancestor.nsid), child_attribute_name)
             #- use the node factory on the last node only
             if i == len(nsid_segments) - 1:
-                new_node = node_factory(new_node_nsid)
+                new_node = node_factory(new_node_nsid, *args, **kwargs)
             else:
                 new_node = self.default_node_factory(new_node_nsid)
             created_nodes.append(new_node)
@@ -160,9 +160,14 @@ class Namespace(SimpleNamespace):
             Description:
                 add one and only one new node to this namespace and return the new node
             Input:
-                nsid
+                nsid: nsid of new node to create
+                node_factory: factory method to call to create the node
+                *args, **kwargs: passed through to node_factory
             Output:
-                exactly one new node created
+                exactly one new node created or raises an exception if:
+                    - it looks like it will create more than one node: NamespaceLookupError
+                    or
+                    - if it didn't look like it but somehow it did: NamespaceInternalError
         """
         nsid_segments = list_nsid_segments(nsid, skip_root=True)
         if len(nsid_segments) > 1:
@@ -174,7 +179,7 @@ class Namespace(SimpleNamespace):
                           f" than one new node. ({len(nsid_segments)} > 1)"
                 raise ValueError(err_msg)
 
-        new_nodes = self.add(nsid=nsid, node_factory=node_factory, *args, **kwargs)
+        new_nodes = self.add(nsid, node_factory, *args, **kwargs)
 
         if len(new_nodes) > 1:
             raise NamespaceInternalError(f"created more than one new node! ({new_nodes})")
@@ -203,7 +208,7 @@ class Namespace(SimpleNamespace):
         return node
 
 
-    def walk(self, start=None, walk_dict=None, call_depth=1):
+    def walk(self, start=None, walk_dict=None):
         """
         Description:
             walk the namespace nodes
@@ -225,5 +230,5 @@ class Namespace(SimpleNamespace):
         for attr_name in dir(start):
             if not attr_name.startswith('_'):
                 updated_walk = self.walk(start=getattr(start, attr_name),
-                                    walk_dict=walk_dict[key], call_depth=call_depth+1)
+                                    walk_dict=walk_dict[key])
         return walk_dict
