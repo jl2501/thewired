@@ -174,16 +174,23 @@ def make_child_nsid(parent_nsid, child, separator='.'):
 
 
 def get_parent_nsid(nsid, parent_num=1, separator='.'):
-    if is_valid_nsid_str(nsid, separator=separator):
-        return separator.join(
-            nsid.split(separator)[0:-parent_num]
-        )
+    validate_nsid(nsid)
+    retval = separator.join(
+        nsid.split(separator)[0:-parent_num]
+    )
+    if retval == '':
+        return '.'
+    else:
+        return retval
 
 
 def get_nsid_parts(nsid, separator='.'):
     return nsid.split(separator)
 
 def list_nsid_segments(nsid, separator='.', skip_root=False) -> List:
+    if nsid == separator:
+        return [nsid]
+
     segments = nsid.split(separator)
     if segments[0] == '':
         if not skip_root:

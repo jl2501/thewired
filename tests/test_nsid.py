@@ -62,6 +62,10 @@ class test_nsid(unittest.TestCase):
         nsid = '.a.b.c.d'
         self.assertEqual('.a.b', get_parent_nsid(nsid, parent_num=2))
 
+    def test_get_parent_nsid4(self):
+        nsid = '.a'
+        self.assertEqual('.', get_parent_nsid(nsid))
+
     def test_find_common_prefix1(self):
         nsid1 = 'a.b.c.d'
         nsid2 = 'a.b.x'
@@ -91,10 +95,17 @@ class test_nsid(unittest.TestCase):
         nsid1 = '.a.b.c'
         self.assertEqual(['.','a','b','c'], list_nsid_segments(nsid1))
 
+    def test_list_nsid_segments2(self):
+        nsid1 = '.'
+        self.assertEqual(['.'], list_nsid_segments(nsid1))
+
+    def test_list_nsid_segments3(self):
+        nsid = '.a'
+        self.assertEqual(['.', 'a'], list_nsid_segments(nsid))
+
     def test_get_nsid_parts(self):
         nsid1 = '.a.b.c'
         self.assertEqual(['','a','b','c'], get_nsid_parts(nsid1))
-
 
     def test_get_nsid_ancestry(self):
         nsid1 = '.a.b.c'
