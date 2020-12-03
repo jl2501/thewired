@@ -156,3 +156,16 @@ class TestNamespace(unittest.TestCase):
             }
         }
         self.assertEqual(ns.walk(), test_dict)
+
+
+    def test_bad_get(self):
+        ns = Namespace()
+        with self.assertRaises(NamespaceLookupError):
+            ns.get(".something.that.does.not.exist.and.is.long")
+
+    def test_bad_get2(self):
+        ns = Namespace()
+        ns.add('.something.that')
+
+        with self.assertRaises(NamespaceLookupError):
+            ns.get(".something.that.does.not.exist.and.is.long")
