@@ -55,6 +55,15 @@ class Namespace(SimpleNamespace):
 
 
 
+    def __getattr__(self, attr):
+        """
+        Description:
+            to make it look like everything that's actually under the namespacenode .root is
+            actually directly part of the namespace object
+        """
+        return getattr(self.root, attr)
+
+
     def _validate_default_node_factory(self, func):
         if not callable(func):
             raise ValueError(f"default_node_facotry must be callable!")
