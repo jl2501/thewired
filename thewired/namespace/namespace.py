@@ -240,7 +240,7 @@ class Namespace(SimpleNamespace):
         return walk_dict
 
 
-    def get_handle(self, handle_key:Union[Nsid,str]) -> 'NamespaceHandle':
+    def get_handle(self, handle_key:Union[Nsid,str], add:bool=False) -> 'NamespaceHandle':
         """
         Description:
             get a "handle" on a subnamespace. That is, return an object that can be used as a namespace object
@@ -248,9 +248,21 @@ class Namespace(SimpleNamespace):
 
         Input:
             handle_key: string/Nsid object representing where the handle's root is
+            add: if the handle key does not exist, should we first add the key and succeed?
+                if the key doesn't exist, this will fail unless you set `add=True` when called
         Output:
             a NamespaceHandle object
         """
+        create_nodes = add
+
+        try:
+            self.get(handle_key)
+        except NamespaceLookupError as err:
+            if create_nodes:
+                self.add(handle_key)
+            else:
+                raise 
+
         return NamespaceHandle(self, handle_key)
 
 
@@ -274,7 +286,11 @@ class NamespaceHandle(Namespace):
         return retval
 
     def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
-        real_nsid = self.prefix + nsid
+        if nsid == self.delineator:
+            real_nsid = self.prefix
+        else:
+            real_nsid = self.prefix + nsid
+
         return self.ns.get(real_nsid)
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:

@@ -169,13 +169,23 @@ class TestNamespace(unittest.TestCase):
         ns.a.few.nodes.attr = "val"
         assert ns.a.few.nodes.attr == "val"
 
-    def test_handle_ns(self):
+    def test_get_handle(self):
         ns = Namespace()
         ns.add(".add.some.stuff.here")
         ns.add(".other.stuff.added.here.now")
 
         handle = ns.get_handle(".other.stuff")
         assert isinstance(handle.added.here, NamespaceNodeBase)
+
+    def test_get_nonexisting_handle(self):
+        ns = Namespace()
+        handle = ns.get_handle(".something.totally.new", add=True)
+        assert handle.get('.').nsid.nsid == ".something.totally.new"
+
+    def test_get_nonexisting_handle_fail(self):
+        ns = Namespace()
+        with self.assertRaises(NamespaceLookupError):
+            handle = ns.get_handle(".something.totally.new")
 
     def test_handle_get(self):
         ns = Namespace()
