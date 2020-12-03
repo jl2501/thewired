@@ -6,10 +6,10 @@ authors = ["James Light <j.gareth.light@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pytest = "^6.0.1"
 
 [tool.poetry.dev-dependencies]
 ipython = "^7.13.0"
+pytest = "^6.1.2"
 
 [build-system]
 requires = ["poetry>=0.12"]
