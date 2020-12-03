@@ -169,3 +169,11 @@ class TestNamespace(unittest.TestCase):
 
         with self.assertRaises(NamespaceLookupError):
             ns.get(".something.that.does.not.exist.and.is.long")
+
+    def test_root_delegate(self):
+        ns = Namespace()
+        ns.add('.a.few.nodes')
+
+        #make sure it exists with this name
+        ns.a.few.nodes.attr = "val"
+        assert ns.a.few.nodes.attr == "val"
