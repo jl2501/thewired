@@ -179,7 +179,7 @@ class TestNamespace(unittest.TestCase):
 
     def test_get_nonexisting_handle(self):
         ns = Namespace()
-        handle = ns.get_handle(".something.totally.new", add=True)
+        handle = ns.get_handle(".something.totally.new", create_nodes=True)
         assert handle.get('.').nsid.nsid == ".something.totally.new"
 
     def test_get_nonexisting_handle_fail(self):
