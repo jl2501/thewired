@@ -11,6 +11,7 @@ Notes:
 from logging import getLogger, LoggerAdapter
 from types import SimpleNamespace
 from typing import Union, List
+from warnings import warn
 
 from thewired.loginfo import make_log_adapter
 from .namespacenode import NamespaceNodeBase
@@ -81,6 +82,7 @@ class Namespace(SimpleNamespace):
         Description:
             return a node object specified by NSID
         """
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get"))
         self._validate_namespace_nsid_head(nsid)
         _nsid_ = Nsid(nsid)
         current_node = self.root
@@ -88,10 +90,15 @@ class Namespace(SimpleNamespace):
 
         n = 0
         while current_node.nsid != _nsid_:
-            self.log.debug(f"current_node.nsid != nsid | {current_node.nsid} != {nsid}")
-            nsid_segment = nsid_segments[n]
+            log.debug(f"{_nsid_=} != {current_node.nsid=}")
+            try:
+                nsid_segment = nsid_segments[n]
+            except IndexError:
+                raise NamespaceInternalError(f"while looking for nsid {_nsid_}, ran out of nsid_segments: {nsid_segments}")
             try:
                 current_node = getattr(current_node, nsid_segment)
+                if not isinstance(current_node, NamespaceNodeBase):
+                    warn("Rogue node type detected in the namespace. Will most likely cause errors.")
             except AttributeError:
                 raise NamespaceLookupError(f"{current_node} has no attribute named '{nsid_segment}'")
             n += 1
