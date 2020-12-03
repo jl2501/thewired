@@ -10,10 +10,6 @@ class TestNamespace(unittest.TestCase):
     def test_default_instantiation(self):
         ns = thewired.namespace.Namespace()
 
-    def test_prefixed_instantation(self):
-        ns = thewired.namespace.Namespace(prefix='.prefix_test')
-        self.assertEqual(ns.prefix, '.prefix_test')
-
     def test_get_root_node(self):
         ns = Namespace()
         root = ns.get('.')
@@ -83,11 +79,6 @@ class TestNamespace(unittest.TestCase):
         self.assertEqual(str(node.nsid), new_nsid)
         with self.assertRaises(NamespaceLookupError):
             ns.get(new_nsid)
-
-    def test_new_node_with_prefix(self):
-        ns = Namespace(prefix='.some.short.prefix')
-        new_node = ns.add('.some.short.prefix.and')[-1]
-        self.assertEqual(str(new_node.nsid), '.some.short.prefix.and')
 
     def test_add_exactly_one_happy_path(self):
         ns = Namespace()
@@ -177,3 +168,36 @@ class TestNamespace(unittest.TestCase):
         #make sure it exists with this name
         ns.a.few.nodes.attr = "val"
         assert ns.a.few.nodes.attr == "val"
+
+    def test_handle_ns(self):
+        ns = Namespace()
+        ns.add(".add.some.stuff.here")
+        ns.add(".other.stuff.added.here.now")
+
+        handle = ns.get_handle(".other.stuff")
+        assert isinstance(handle.added.here, NamespaceNodeBase)
+
+    def test_handle_get(self):
+        ns = Namespace()
+        ns.add(".add.some.stuff.here")
+        ns.add(".other.stuff.added.here.now")
+
+        handle = ns.get_handle(".other.stuff")
+        assert isinstance(handle.get('.added.here'), NamespaceNodeBase)
+
+    def test_handle_add(self):
+        ns = Namespace()
+        ns.add(".more.stuff.here.too")
+
+        handle = ns.get_handle(".more.stuff.here.too")
+        new_node = handle.add(".subtree")[0]
+        assert isinstance(handle.subtree, NamespaceNodeBase)
+
+    def test_handle_remove(self):
+        ns = Namespace()
+        ns.add(".more.stuff.here.too")
+
+        handle = ns.get_handle(".more.stuff.here")
+        node = handle.remove(".too")
+
+        assert node.nsid.nsid == ".more.stuff.here.too"

@@ -33,7 +33,7 @@ class Namespace(SimpleNamespace):
     delineator = '.'
     _root_nsid = '.'
 
-    def __init__(self, prefix: str = None, default_node_factory=NamespaceNodeBase):
+    def __init__(self, default_node_factory=NamespaceNodeBase):
         """
         Input:
             prefix: what namespace prefix is applied to all nodes in this namespace
@@ -41,18 +41,11 @@ class Namespace(SimpleNamespace):
         """
         self.log = LoggerAdapter(logger,
             {'name_ext' : f'{self.__class__.__name__}.__init__'})
-        self.prefix = prefix
-
-        if self.prefix:
-            self.nsid_prefix = self.prefix
-        else:
-            self.nsid_prefix = self._root_nsid
 
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
 
-        self.root = self.default_node_factory(nsid=self.nsid_prefix)
-
+        self.root = self.default_node_factory(nsid=self._root_nsid)
 
 
     def __getattr__(self, attr):
@@ -102,8 +95,8 @@ class Namespace(SimpleNamespace):
             log.debug(f"{_nsid_=} != {current_node.nsid=}")
             try:
                 nsid_segment = nsid_segments[n]
-            except IndexError:
-                raise NamespaceInternalError(f"while looking for nsid {_nsid_}, ran out of nsid_segments: {nsid_segments}")
+            except IndexError as err:
+                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments}") from err
             try:
                 current_node = getattr(current_node, nsid_segment)
                 if not isinstance(current_node, NamespaceNodeBase):
@@ -115,7 +108,7 @@ class Namespace(SimpleNamespace):
 
 
 
-    def add(self, nsid : Union[str, Nsid], node_factory=None, *args, **kwargs) -> List[NamespaceNodeBase]:
+    def add(self, nsid : Union[str, Nsid], node_factory:Union[callable, None]=None, *args, **kwargs) -> List[NamespaceNodeBase]:
         """
             Description:
                 add a new nsid to this namespace
@@ -210,13 +203,10 @@ class Namespace(SimpleNamespace):
         Input:
             nsid: the nsid of the node to remove
 
-        Note: it is not an error to remove a node that doesn't exist
+        Note: it is an error to remove a node that doesn't exist
         """
         parent_nsid = get_parent_nsid(nsid)
-        try:
-            parent = self.get(parent_nsid)
-        except NamespaceLookupError:
-            return None
+        parent = self.get(parent_nsid)
 
         child_short_nsid = strip_common_prefix(str(parent.nsid), nsid)[1]
         node = getattr(parent, child_short_nsid)
@@ -224,7 +214,7 @@ class Namespace(SimpleNamespace):
         return node
 
 
-    def walk(self, start=None, walk_dict=None):
+    def walk(self, start:Union[NamespaceNodeBase,None]=None, walk_dict:Union[dict,None]=None) -> dict:
         """
         Description:
             walk the namespace nodes
@@ -248,3 +238,49 @@ class Namespace(SimpleNamespace):
                 updated_walk = self.walk(start=getattr(start, attr_name),
                                     walk_dict=walk_dict[key])
         return walk_dict
+
+
+    def get_handle(self, handle_key:Union[Nsid,str]) -> 'NamespaceHandle':
+        """
+        Description:
+            get a "handle" on a subnamespace. That is, return an object that can be used as a namespace object
+            that always operates on the subnamespace given in the handle_key.
+
+        Input:
+            handle_key: string/Nsid object representing where the handle's root is
+        Output:
+            a NamespaceHandle object
+        """
+        return NamespaceHandle(self, handle_key)
+
+
+class NamespaceHandle(Namespace):
+    """
+    Description:
+        basically if I get a handle from an existing namespace object, it should act exactly like a Namespace object,
+        only all of the NSIDs are interpreted relative to the handle's prefix as the root
+    """
+    def __init__(self, ns : Namespace, prefix: Union[str, Nsid]):
+        self.ns = ns
+        self.prefix = prefix
+        self.root = ns.get(prefix)
+
+    def __getattr__(self, attr):
+        saved_root = self.ns.root
+        self.ns.root = self.root
+
+        retval = getattr(self.ns, attr)
+        self.ns.root = saved_root
+        return retval
+
+    def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
+        real_nsid = self.prefix + nsid
+        return self.ns.get(real_nsid)
+
+    def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
+        real_nsid = self.prefix + nsid
+        return self.ns.add(real_nsid, *args, **kwargs)
+
+    def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
+        real_nsid = self.prefix + nsid
+        return self.ns.remove(real_nsid)
