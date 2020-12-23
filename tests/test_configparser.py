@@ -54,7 +54,7 @@ class test_NamespaceConfigParser2(unittest.TestCase):
             }
         }
 
-        nscp = NamespaceConfigParser2(prefix='')
+        nscp = NamespaceConfigParser2()
         ns = nscp.parse(dictConfig=test_dict)
         for nsid in get_nsid_ancestry('.all.work.no.play.dull_boy'):
             assert isinstance(ns.get(nsid), NamespaceNodeBase)
