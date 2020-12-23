@@ -119,6 +119,7 @@ class Namespace(SimpleNamespace):
                 *args: passed into the node_factory as args
                 **kwargs: passed into the node_factory as kwargs
         """
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add"))
         if find_common_prefix(str(self.root.nsid), nsid) is None:
             err_msg = f'child nsid ({nsid}) must share a common prefix with Namespace root node nsid'
             err_msg += f'({str(self.root.nsid)})'
@@ -148,6 +149,7 @@ class Namespace(SimpleNamespace):
             new_node_nsid = make_child_nsid(str(deepest_ancestor.nsid), child_attribute_name)
             #- use the node factory on the last node only
             if i == len(nsid_segments) - 1:
+                log.debug(f"Calling node_factory({node_factory}), w/ {args=}, {kwargs=}")
                 new_node = node_factory(new_node_nsid, *args, **kwargs)
             else:
                 new_node = self.default_node_factory(new_node_nsid)
