@@ -13,8 +13,7 @@ from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
 class NamespaceConfigParser2(object):
-    def __init__(self, prefix: str = None, node_factory=NamespaceNodeBase):
-        self.prefix = prefix if prefix else ''
+    def __init__(self, node_factory:type=NamespaceNodeBase):
         self.default_node_factory=node_factory
 
         #- special YAML keys that can be used to let this parser know
@@ -27,7 +26,7 @@ class NamespaceConfigParser2(object):
     def _get_node_factory(self, key: str, dictConfig: dict) -> partial:
         """
         Description:
-            return a context manager that sets the node factory based on any meta keys that
+            return the node factory based on any meta keys that
             may exist under this key
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_key'))
@@ -35,6 +34,7 @@ class NamespaceConfigParser2(object):
         #- check the subkeys of this key to see if they have any meta info about how to create the node
         if any(x in self.meta_keys for x in dictConfig[key].keys()):
             #- we need to change the node factory from the default
+            nf_module = None
             try:
                 nf_module_name = '.'.join(dictConfig[key]["__type__"].split('.')[0:-1])
                 nf_symbol_name = dictConfig[key]["__type__"].split('.')[-1]
@@ -44,7 +44,6 @@ class NamespaceConfigParser2(object):
                 #- no "__type__" key
                 #- leave node_factory set to the default
                 log.debug("key error when trying to access '__type__'")
-                nf_module = None
 
             except ValueError:
                 #- we have a name, but it might not have a dot at all,
@@ -79,7 +78,7 @@ class NamespaceConfigParser2(object):
 
                 
 
-    def parse(self, dictConfig: dict, prefix:str='', namespace:Union[None, Namespace]=None, namespace_factory:type=Namespace) -> Union[Namespace, None]:
+    def parse(self, dictConfig: dict, prefix:str='', namespace:Namespace=None, namespace_factory:type=Namespace) -> Union[Namespace, None]:
         """
         Description:
             parse a configDict into a Namespace object
