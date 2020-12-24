@@ -45,7 +45,7 @@ class Namespace(SimpleNamespace):
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
 
-        self.root = self.default_node_factory(nsid=self._root_nsid)
+        self.root = self.default_node_factory(nsid=self._root_nsid, namespace=self)
 
 
     def __getattr__(self, attr):
@@ -62,9 +62,9 @@ class Namespace(SimpleNamespace):
             raise ValueError(f"default_node_facotry must be callable!")
 
         try:
-            x = func(nsid=".a.b.c")
+            x = func(nsid=".a.b.c", namespace=None)
         except TypeError as err:
-            raise ValueError("default_node_factory must take 'nsid' parameter!")
+            raise ValueError("default_node_factory either does not take 'nsid' and 'namespace' keyword parameters, or has additional required parameters!")
 
 
 
