@@ -150,9 +150,9 @@ class Namespace(SimpleNamespace):
             #- use the node factory on the last node only
             if i == len(nsid_segments) - 1:
                 log.debug(f"Calling node_factory({node_factory}), w/ {args=}, {kwargs=}")
-                new_node = node_factory(new_node_nsid, *args, **kwargs)
+                new_node = node_factory(new_node_nsid, self, *args, **kwargs)
             else:
-                new_node = self.default_node_factory(new_node_nsid)
+                new_node = self.default_node_factory(new_node_nsid, self)
             created_nodes.append(new_node)
             setattr(deepest_ancestor, child_attribute_name, new_node)
             deepest_ancestor = getattr(deepest_ancestor, child_attribute_name)
