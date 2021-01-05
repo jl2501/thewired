@@ -96,7 +96,7 @@ class Namespace(SimpleNamespace):
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
-                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments}") from err
+                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments} at index {n}") from err
             try:
                 current_node = getattr(current_node, nsid_segment)
                 if not isinstance(current_node, NamespaceNodeBase):

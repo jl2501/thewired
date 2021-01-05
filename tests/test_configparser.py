@@ -1,6 +1,8 @@
 import thewired
 import unittest
 
+from functools import partial
+
 from thewired.namespace import Namespace
 from thewired.namespace import NamespaceNode
 from thewired.namespace import NamespaceNodeBase
@@ -8,25 +10,35 @@ from thewired.namespace.nsid import get_nsid_ancestry
 from thewired import NamespaceConfigParser
 from thewired import NamespaceConfigParser2
 
+class NamespaceNodeSubclass(NamespaceNode):
+    pass
+
+class NamespaceNodeBaseSubclass(NamespaceNodeBase):
+    pass
+
+
 class test_NamespaceConfigParser1(unittest.TestCase):
 
     def test_NamespaceConfigParser_instantation(self):
         nscp = NamespaceConfigParser()
         self.assertIsInstance(nscp.new_node(), NamespaceNode)
 
-    def test_NamespaceConfigParser_instantation_with_node_factory_override(self):
-        nscp = NamespaceConfigParser(node_factory=NamespaceNodeBase)
-        self.assertIsInstance(nscp.new_node(nsid='.test'), NamespaceNodeBase)
+    def test_NamespaceConfigParser_instantiation_with_node_factory_override_1(self):
+        nscp = NamespaceConfigParser(node_factory=NamespaceNodeSubclass)
+        self.assertIsInstance(nscp.new_node(nsid='.test'), NamespaceNodeSubclass)
 
-    def test_NamespaceConfigParser_instantation_with_node_factory_override_2(self):
-        ns = Namespace()
+    def test_NamespaceConfigParser_instantiation_with_node_factory_override_2(self):
+        ns = Namespace(default_node_factory=NamespaceNodeBaseSubclass)
         nscp = NamespaceConfigParser(node_factory=ns.add)
-        self.assertIsInstance(nscp.new_node(nsid='.testt')[0], NamespaceNodeBase)
+        new_node = nscp.new_node(nsid='.test')[0]
+        self.assertIsInstance(new_node, NamespaceNodeBaseSubclass)
 
-    def test_nscp_instantiation_with_node_factory_override_3(self):
-        ns = Namespace()
-        nscp = NamespaceConfigParser(node_factory=ns.add_exactly_one)
-        self.assertIsInstance(nscp.new_node('.test'), NamespaceNodeBase)
+    def test_NamespaceConfigParser_instantiation_with_node_factory_override_3(self):
+        ns = Namespace(default_node_factory=NamespaceNodeBaseSubclass)
+        nfactory = partial(ns.add_exactly_one, node_factory=NamespaceNodeBaseSubclass)
+        nscp = NamespaceConfigParser(node_factory=nfactory)
+        new_node = nscp.new_node('.test')
+        self.assertIsInstance(new_node, NamespaceNodeBaseSubclass)
 
 
 
