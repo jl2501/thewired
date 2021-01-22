@@ -205,15 +205,20 @@ class NamespaceConfigParser2(object):
                 #- that case is when there are objects that first must be instantiated in order
                 #- to be passed as parameters into the node factory bare function to complete
                 #- the node factory function partial
-                init_param_objects = dict()
                 for init_param_name in init_param_names:
-                    if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
-                        log.error(f"found recursive parameter definition: {init_param_name=}")
-                        log.error(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
+                    try:
+                        init_params_config[init_param_name].keys()
+                    except AttributeError:
+                        init_params[init_param_name] = dictConfig["__init__"][init_param_name]
 
-                        init_param_objects[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
+                    else:
+                        if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
+                            log.error(f"found recursive parameter definition: {init_param_name=}")
+                            log.error(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
 
-                        log.error(f"created new object: {init_param_objects[init_param_name]=}")
+                            init_params[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
+
+                            log.error(f"created new object: {init_param_objects[init_param_name]=}")
         return init_params
 
 
