@@ -42,90 +42,107 @@ class test_NamespaceConfigParser1(unittest.TestCase):
 
 
 
-class test_NamespaceConfigParser2(unittest.TestCase):
-    def test_NamespaceConfigParser_instantation(self):
-        nscp = NamespaceConfigParser2()
+def test_NamespaceConfigParser_instantation():
+    nscp = NamespaceConfigParser2()
 
-    def test_nscp_parse(self):
-        test_dict = {
-            "all" : {
-                "work" : {
-                    "no" : {
-                      "play" : {
-                          "dull_boy" : {}
-                      }
-                    }
+def test_nscp_parse():
+    test_dict = {
+        "all" : {
+            "work" : {
+                "no" : {
+                  "play" : {
+                      "dull_boy" : {}
+                  }
                 }
-            },
-            "hackers" : {
-                "on" : {
-                    "planet" : {
-                        "earth" : {}
-                    }
+            }
+        },
+        "hackers" : {
+            "on" : {
+                "planet" : {
+                    "earth" : {}
                 }
             }
         }
+    }
 
-        nscp = NamespaceConfigParser2()
-        ns = nscp.parse(dictConfig=test_dict)
+    nscp = NamespaceConfigParser2()
+    ns = nscp.parse(dictConfig=test_dict)
 
-        print(ns.walk())
-        for nsid in get_nsid_ancestry('.all.work.no.play.dull_boy'):
-            assert isinstance(ns.get(nsid), NamespaceNodeBase)
-
-
-        for nsid in get_nsid_ancestry('.hackers.on.planet.earth'):
-            assert isinstance(ns.get(nsid), NamespaceNodeBase)
+    print(ns.walk())
+    for nsid in get_nsid_ancestry('.all.work.no.play.dull_boy'):
+        assert isinstance(ns.get(nsid), NamespaceNodeBase)
 
 
-    def test_parse_meta(self):
-        test_dict = {
-            "topkey" : {
-                "user1" : {
-                    "__type__": "thewired.SecondLifeNode",
-                    "__init__": {
-                        "a": "a value for param1",
-                        "b" : "param2's value"
-                    }
+    for nsid in get_nsid_ancestry('.hackers.on.planet.earth'):
+        assert isinstance(ns.get(nsid), NamespaceNodeBase)
+
+
+def test_parse_meta_1():
+    test_dict = {
+        "topkey" : {
+            "user1" : {
+                "__type__": "thewired.SecondLifeNode"
+            }
+        }
+    }
+    nscp = NamespaceConfigParser2()
+    ns = nscp.parse(dictConfig=test_dict)
+    print(ns.walk())
+
+    assert isinstance(ns.root, NamespaceNodeBase)
+    from thewired import SecondLifeNode
+    assert isinstance(ns.get(".topkey.user1"), SecondLifeNode)
+
+
+
+def test_parse_meta_2():
+    test_dict = {
+        "topkey" : {
+            "user1" : {
+                "__type__": "thewired.SecondLifeNode",
+                "__init__": {
+                    "a": "a value for param1",
+                    "b" : "param2's value"
                 }
             }
         }
+    }
 
-        nscp = NamespaceConfigParser2()
-        ns = nscp.parse(dictConfig=test_dict)
-        print(ns.walk())
+    nscp = NamespaceConfigParser2()
+    ns = nscp.parse(dictConfig=test_dict)
+    print(ns.walk())
 
-        assert isinstance(ns.root, NamespaceNodeBase)
+    assert isinstance(ns.root, NamespaceNodeBase)
 
-        from thewired import SecondLifeNode
-        assert isinstance(ns.get(".topkey.user1"), SecondLifeNode)
-        assert ns.get('.topkey.user1').a == "a value for param1"
-        assert ns.get('.topkey.user1').b == "param2's value"
-        assert ns.root.topkey.user1.a == "a value for param1"
-        assert ns.root.topkey.user1.b == "param2's value"
+    from thewired import SecondLifeNode
+    assert isinstance(ns.get(".topkey.user1"), SecondLifeNode)
+    assert ns.get('.topkey.user1').a == "a value for param1"
+    assert ns.get('.topkey.user1').b == "param2's value"
+    assert ns.root.topkey.user1.a == "a value for param1"
+    assert ns.root.topkey.user1.b == "param2's value"
 
-    def test_parse_meta_nested(self):
-        test_dict = {
-            "topkey" : {
-                "subkey1" : {
-                    "__type__" : "thewired.Nsid",
-                    "__init__" : {
-                        "nsid" : {
-                            "__type__" : "thewired.Nsid",
-                            "__init__" : {
-                                "nsid" : "nsids.init.can.take.an.existing.nsid.so.its.useful.for.this.test"
-                            }
+def test_parse_meta_nested():
+    test_dict = {
+        "topkey" : {
+            "subkey1" : {
+                "__type__" : "thewired.Nsid",
+                "__init__" : {
+                    "nsid" : {
+                        "__type__" : "thewired.Nsid",
+                        "__init__" : {
+                            "nsid" : "nsids.init.can.take.an.existing.nsid.so.its.useful.for.this.test"
                         }
                     }
                 }
             }
         }
+    }
 
-        nscp = NamespaceConfigParser2()
-        ns = nscp.parse(dictConfig=test_dict)
-        print(ns.walk())
+    nscp = NamespaceConfigParser2()
+    ns = nscp.parse(dictConfig=test_dict)
+    print(ns.walk())
 
-        assert isinstance(ns.root, NamespaceNodeBase)
+    assert isinstance(ns.root, NamespaceNodeBase)
 
-        from thewired import Nsid
-        assert isinstance(ns.get(".topkey.subkey1"), Nsid)
+    from thewired import Nsid
+    assert isinstance(ns.get(".topkey.subkey1"), Nsid)
