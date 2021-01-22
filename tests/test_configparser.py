@@ -69,6 +69,7 @@ class test_NamespaceConfigParser2(unittest.TestCase):
         nscp = NamespaceConfigParser2()
         ns = nscp.parse(dictConfig=test_dict)
 
+        print(ns.walk())
         for nsid in get_nsid_ancestry('.all.work.no.play.dull_boy'):
             assert isinstance(ns.get(nsid), NamespaceNodeBase)
 
@@ -102,3 +103,29 @@ class test_NamespaceConfigParser2(unittest.TestCase):
         assert ns.get('.topkey.user1').b == "param2's value"
         assert ns.root.topkey.user1.a == "a value for param1"
         assert ns.root.topkey.user1.b == "param2's value"
+
+    def test_parse_meta_nested(self):
+        test_dict = {
+            "topkey" : {
+                "subkey1" : {
+                    "__type__" : "thewired.Nsid",
+                    "__init__" : {
+                        "nsid" : {
+                            "__type__" : "thewired.Nsid",
+                            "__init__" : {
+                                "nsid" : "nsids.init.can.take.an.existing.nsid.so.its.useful.for.this.test"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        nscp = NamespaceConfigParser2()
+        ns = nscp.parse(dictConfig=test_dict)
+        print(ns.walk())
+
+        assert isinstance(ns.root, NamespaceNodeBase)
+
+        from thewired import Nsid
+        assert isinstance(ns.get(".topkey.subkey1"), Nsid)
