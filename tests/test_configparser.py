@@ -121,7 +121,7 @@ def test_parse_meta_2():
     assert ns.root.topkey.user1.a == "a value for param1"
     assert ns.root.topkey.user1.b == "param2's value"
 
-def test_parse_meta_nested():
+def test_parse_meta_nested_1():
     test_dict = {
         "topkey" : {
             "subkey1" : {
@@ -146,3 +146,34 @@ def test_parse_meta_nested():
 
     from thewired.testobjects import SomeNodeType
     assert isinstance(ns.get(".topkey.subkey1"), SomeNodeType)
+
+def test_parse_meta_nested_2():
+    test_dict = {
+        "topkey" : {
+            "subkey1" : {
+                "__type__" : "thewired.testobjects.SomeOtherNodeType",
+                "__init__" : {
+                    "somethingelse" : {
+                        "__type__" : "thewired.testobjects.SomethingElse",
+                        "__init__" : {
+                            "something" : {
+                                "__type__" : "thewired.testobjects.Something",
+                                "__init__" : {
+                                    "arg1" : "some value"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    nscp = NamespaceConfigParser2()
+    ns = nscp.parse(dictConfig=test_dict)
+    print(ns.walk())
+
+    assert isinstance(ns.root, NamespaceNodeBase)
+
+    from thewired.testobjects import Something, SomethingElse, SomeOtherNodeType
+    assert isinstance(ns.get(".topkey.subkey1"), SomeOtherNodeType)
