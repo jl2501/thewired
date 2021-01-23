@@ -177,3 +177,4 @@ def test_parse_meta_nested_2():
 
     from thewired.testobjects import Something, SomethingElse, SomeOtherNodeType
     assert isinstance(ns.get(".topkey.subkey1"), SomeOtherNodeType)
+    assert ns.root.topkey.subkey1.something_elses_thing == "some value"
