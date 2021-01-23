@@ -45,7 +45,7 @@ class test_NamespaceConfigParser1(unittest.TestCase):
 def test_NamespaceConfigParser_instantation():
     nscp = NamespaceConfigParser2()
 
-def test_nscp_parse():
+def test_parse_no_meta():
     test_dict = {
         "all" : {
             "work" : {
@@ -125,12 +125,12 @@ def test_parse_meta_nested():
     test_dict = {
         "topkey" : {
             "subkey1" : {
-                "__type__" : "thewired.Nsid",
+                "__type__" : "thewired.testobjects.SomeNodeType",
                 "__init__" : {
-                    "nsid" : {
-                        "__type__" : "thewired.Nsid",
+                    "something" : {
+                        "__type__" : "thewired.testobjects.Something",
                         "__init__" : {
-                            "nsid" : "nsids.init.can.take.an.existing.nsid.so.its.useful.for.this.test"
+                            "arg1" : "some value"
                         }
                     }
                 }
@@ -144,5 +144,5 @@ def test_parse_meta_nested():
 
     assert isinstance(ns.root, NamespaceNodeBase)
 
-    from thewired import Nsid
-    assert isinstance(ns.get(".topkey.subkey1"), Nsid)
+    from thewired.testobjects import SomeNodeType
+    assert isinstance(ns.get(".topkey.subkey1"), SomeNodeType)
