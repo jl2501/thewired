@@ -261,7 +261,7 @@ class Namespace(SimpleNamespace):
 
         Input:
             handle_key: string/Nsid object representing where the handle's root is
-            create_noes: if the handle key does not exist, should we first add the key and succeed?
+            create_nodes: if the handle key does not exist, should we first add the key and succeed?
                 if the key doesn't exist, this will fail with a NamespaceLookupError
         Output:
             a NamespaceHandle object
