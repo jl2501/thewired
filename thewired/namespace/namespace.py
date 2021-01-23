@@ -150,10 +150,11 @@ class Namespace(SimpleNamespace):
             new_node_nsid = make_child_nsid(str(deepest_ancestor.nsid), child_attribute_name)
             #- use the node factory on the last node only
             if i == len(nsid_segments) - 1:
-                log.error(f"creating node: {node_factory=})")
+                log.debug(f"creating node: {node_factory=})")
 
-                #fix this to require the factory function to be callable w/out args
+                #TODO fix this to require the factory function to be callable w/out args
                 #force folks to pass in a partial if necessary
+                # for now just plow on through I guess
                 try:
                     new_node = node_factory(new_node_nsid, self, *args, **kwargs)
                 except TypeError:
