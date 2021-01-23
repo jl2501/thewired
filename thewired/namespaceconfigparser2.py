@@ -18,7 +18,7 @@ class NamespaceConfigParser2(object):
 
         #- special YAML keys that can be used to let this parser know
         #- what type should be used for the node factory and what params to pass it
-        self.meta_keys = ['__type__', '__init__']
+        self.meta_keys = set(['__type__', '__init__'])
 
 
 
@@ -52,19 +52,20 @@ class NamespaceConfigParser2(object):
         #- create namespace as dictConfig describes
         for key in dictConfig.keys():
 
-            node_factory = self._create_factory(dictConfig[key], self.default_node_factory)
+            if key not in self.meta_keys:
+                log.error(f"parsing {key=}")
+                node_factory = self._create_factory(dictConfig[key], self.default_node_factory)
 
-            if node_factory:
-                new_node_nsid = nsid.make_child_nsid(prefix, key)
-                new_node = ns.add_exactly_one(new_node_nsid, node_factory)
+                if node_factory:
+                    new_node_nsid = nsid.make_child_nsid(prefix, key)
+                    log.error(f"{new_node_nsid=}")
+                    new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
-                if isinstance(dictConfig[key], Mapping):
-                   self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid, namespace=ns)
-                else:
-                    log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
-                    setattr(new_node, key, dictConfig[key])
-            else:
-                continue
+                    if isinstance(dictConfig[key], Mapping):
+                       self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid, namespace=ns)
+                    else:
+                        log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
+                        setattr(new_node, key, dictConfig[key])
 
         return ns
 
@@ -91,12 +92,13 @@ class NamespaceConfigParser2(object):
             keys = dictConfig.keys()
         except AttributeError:
             #- the dictConfig isn't a dict anymore
+            log.error("No factory: not a dict")
             return None
 
         node_factory_function = self._parse_meta_factory_function(dictConfig, self.default_node_factory)
         init_params = self._parse_meta_factory_function_params(dictConfig)
 
-        log.debug(f"returning custom {node_factory_function=} {init_params=}")
+        log.error(f"returning custom {node_factory_function=} {init_params=}")
         return partial(node_factory_function, **init_params)
 
 
