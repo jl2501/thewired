@@ -218,9 +218,10 @@ class NamespaceConfigParser2(object):
                             log.error(f"found recursive parameter definition: {init_param_name=}")
                             log.error(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
 
-                            init_params[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
+                            #init_params[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
+                            init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
 
-                            log.error(f"created new object: {init_param_objects[init_param_name]=}")
+                            log.error(f"created new object: {init_params[init_param_name]=}")
         return init_params
 
 
@@ -236,7 +237,7 @@ class NamespaceConfigParser2(object):
             a parameter object instantiated as specified in the config via the meta keys
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_param_objects'))
-        log.error(f"{dictConfig=}")
+        log.error(f"create_node_factory_param_object: {dictConfig=}")
 
         if not dictConfig:
             return None
