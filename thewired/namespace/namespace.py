@@ -48,6 +48,7 @@ class Namespace(SimpleNamespace):
         self.root = self.default_node_factory(nsid=self._root_nsid, namespace=self)
 
 
+
     def __getattr__(self, attr):
         """
         Description:
@@ -259,7 +260,7 @@ class Namespace(SimpleNamespace):
 
         Input:
             handle_key: string/Nsid object representing where the handle's root is
-            create_ndoes: if the handle key does not exist, should we first add the key and succeed?
+            create_noes: if the handle key does not exist, should we first add the key and succeed?
                 if the key doesn't exist, this will fail with a NamespaceLookupError
         Output:
             a NamespaceHandle object
@@ -271,8 +272,9 @@ class Namespace(SimpleNamespace):
                 self.add(handle_key)
             else:
                 raise 
-
         return NamespaceHandle(self, handle_key)
+
+
 
 
 class NamespaceHandle(Namespace):
@@ -286,6 +288,7 @@ class NamespaceHandle(Namespace):
         self.prefix = prefix
         self.root = ns.get(prefix)
 
+
     def __getattr__(self, attr):
         saved_root = self.ns.root
         self.ns.root = self.root
@@ -294,17 +297,19 @@ class NamespaceHandle(Namespace):
         self.ns.root = saved_root
         return retval
 
+
     def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
         if nsid == self.delineator:
             real_nsid = self.prefix
         else:
             real_nsid = self.prefix + nsid
-
         return self.ns.get(real_nsid)
+
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
         real_nsid = self.prefix + nsid
         return self.ns.add(real_nsid, *args, **kwargs)
+
 
     def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
         real_nsid = self.prefix + nsid
