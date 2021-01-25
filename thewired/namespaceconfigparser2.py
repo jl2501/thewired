@@ -53,12 +53,12 @@ class NamespaceConfigParser2(object):
         for key in dictConfig.keys():
 
             if key not in self.meta_keys:
-                log.error(f"parsing {key=}")
+                log.debug(f"parsing {key=}")
                 node_factory = self._create_factory(dictConfig[key], self.default_node_factory)
 
                 if node_factory:
                     new_node_nsid = nsid.make_child_nsid(prefix, key)
-                    log.error(f"{new_node_nsid=}")
+                    log.debug(f"{new_node_nsid=}")
                     new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
                     if isinstance(dictConfig[key], Mapping):
@@ -92,13 +92,13 @@ class NamespaceConfigParser2(object):
             keys = dictConfig.keys()
         except AttributeError:
             #- the dictConfig isn't a dict anymore
-            log.error("No factory: not a dict")
+            log.debug("No factory: not a dict")
             return None
 
         node_factory_function = self._parse_meta_factory_function(dictConfig, self.default_node_factory)
         init_params = self._parse_meta_factory_function_params(dictConfig)
 
-        log.error(f"returning custom {node_factory_function=} {init_params=}")
+        log.debug(f"returning custom {node_factory_function=} {init_params=}")
         return partial(node_factory_function, **init_params)
 
 
@@ -148,11 +148,11 @@ class NamespaceConfigParser2(object):
                 try:
                     node_factory = getattr(nf_module, nf_symbol_name)
                 except AttributeError as err:
-                    log.error("specified factory function does not exist in specified module!")
+                    log.debug("specified factory function does not exist in specified module!")
                     raise ValueError("parsed factory function does not exist in specified module!") from err
 
                 if not callable(node_factory):
-                    log.error(f"specified node factory is not callable! {dictConfig=}")
+                    log.debug(f"specified node factory is not callable! {dictConfig=}")
                     raise ValueError(f"parsed node factory {dictConfig['__type__']} is not callable!")
 
             else:
@@ -199,7 +199,7 @@ class NamespaceConfigParser2(object):
             try:
                 init_param_names = init_params_config.keys()
             except AttributeError:
-                log.error(f"dictConfig[__init__] is not a mapping: {dictConfig['__init__']}")
+                log.debug(f"dictConfig[__init__] is not a mapping: {dictConfig['__init__']}")
                 pass
 
             else:
@@ -215,13 +215,13 @@ class NamespaceConfigParser2(object):
 
                     else:
                         if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
-                            log.error(f"found recursive parameter definition: {init_param_name=}")
-                            log.error(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
+                            log.debug(f"found recursive parameter definition: {init_param_name=}")
+                            log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
 
                             #init_params[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
                             init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
 
-                            log.error(f"created new object: {init_params[init_param_name]=}")
+                            log.debug(f"created new object: {init_params[init_param_name]=}")
         return init_params
 
 
@@ -237,7 +237,7 @@ class NamespaceConfigParser2(object):
             a parameter object instantiated as specified in the config via the meta keys
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_param_objects'))
-        log.error(f"create_node_factory_param_object: {dictConfig=}")
+        log.debug(f"create_node_factory_param_object: {dictConfig=}")
 
         if not dictConfig:
             return None
