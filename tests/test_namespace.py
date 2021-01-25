@@ -111,8 +111,8 @@ class TestNamespace(unittest.TestCase):
 
     def test_default_node_factory(self):
         class NewNamespaceNodeBase(NamespaceNodeBase):
-            def __init__(self, nsid=None):
-                super().__init__(nsid=nsid)
+            def __init__(self, nsid=None, namespace=None):
+                super().__init__(nsid, namespace)
 
         ns = Namespace(default_node_factory=NewNamespaceNodeBase)
         new_nodes = ns.add('.this.is.all.new')
@@ -169,13 +169,23 @@ class TestNamespace(unittest.TestCase):
         ns.a.few.nodes.attr = "val"
         assert ns.a.few.nodes.attr == "val"
 
-    def test_handle_ns(self):
+    def test_get_handle(self):
         ns = Namespace()
         ns.add(".add.some.stuff.here")
         ns.add(".other.stuff.added.here.now")
 
         handle = ns.get_handle(".other.stuff")
         assert isinstance(handle.added.here, NamespaceNodeBase)
+
+    def test_get_nonexisting_handle(self):
+        ns = Namespace()
+        handle = ns.get_handle(".something.totally.new", create_nodes=True)
+        assert handle.get('.').nsid.nsid == ".something.totally.new"
+
+    def test_get_nonexisting_handle_fail(self):
+        ns = Namespace()
+        with self.assertRaises(NamespaceLookupError):
+            handle = ns.get_handle(".something.totally.new")
 
     def test_handle_get(self):
         ns = Namespace()

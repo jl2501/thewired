@@ -45,7 +45,8 @@ class Namespace(SimpleNamespace):
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
 
-        self.root = self.default_node_factory(nsid=self._root_nsid)
+        self.root = self.default_node_factory(nsid=self._root_nsid, namespace=self)
+
 
 
     def __getattr__(self, attr):
@@ -62,9 +63,9 @@ class Namespace(SimpleNamespace):
             raise ValueError(f"default_node_facotry must be callable!")
 
         try:
-            x = func(nsid=".a.b.c")
+            x = func(nsid=".a.b.c", namespace=None)
         except TypeError as err:
-            raise ValueError("default_node_factory must take 'nsid' parameter!")
+            raise ValueError("default_node_factory either does not take 'nsid' and 'namespace' keyword parameters, or has additional required parameters!")
 
 
 
@@ -96,7 +97,7 @@ class Namespace(SimpleNamespace):
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
-                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments}") from err
+                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments} at index {n}") from err
             try:
                 current_node = getattr(current_node, nsid_segment)
                 if not isinstance(current_node, NamespaceNodeBase):
@@ -119,6 +120,7 @@ class Namespace(SimpleNamespace):
                 *args: passed into the node_factory as args
                 **kwargs: passed into the node_factory as kwargs
         """
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add"))
         if find_common_prefix(str(self.root.nsid), nsid) is None:
             err_msg = f'child nsid ({nsid}) must share a common prefix with Namespace root node nsid'
             err_msg += f'({str(self.root.nsid)})'
@@ -148,9 +150,20 @@ class Namespace(SimpleNamespace):
             new_node_nsid = make_child_nsid(str(deepest_ancestor.nsid), child_attribute_name)
             #- use the node factory on the last node only
             if i == len(nsid_segments) - 1:
-                new_node = node_factory(new_node_nsid, *args, **kwargs)
+                log.debug(f"creating node: {node_factory=})")
+
+                #TODO fix this to require the factory function to be callable w/out args
+                #force folks to pass in a partial if necessary
+                # for now just plow on through I guess
+                try:
+                    new_node = node_factory(new_node_nsid, self, *args, **kwargs)
+                except TypeError:
+                    try:
+                        new_node = node_factory(new_node_nsid, self)
+                    except TypeError:
+                            new_node = node_factory()
             else:
-                new_node = self.default_node_factory(new_node_nsid)
+                new_node = self.default_node_factory(new_node_nsid, self)
             created_nodes.append(new_node)
             setattr(deepest_ancestor, child_attribute_name, new_node)
             deepest_ancestor = getattr(deepest_ancestor, child_attribute_name)
@@ -240,7 +253,7 @@ class Namespace(SimpleNamespace):
         return walk_dict
 
 
-    def get_handle(self, handle_key:Union[Nsid,str]) -> 'NamespaceHandle':
+    def get_handle(self, handle_key:Union[Nsid,str], create_nodes:bool=False) -> 'NamespaceHandle':
         """
         Description:
             get a "handle" on a subnamespace. That is, return an object that can be used as a namespace object
@@ -248,10 +261,21 @@ class Namespace(SimpleNamespace):
 
         Input:
             handle_key: string/Nsid object representing where the handle's root is
+            create_nodes: if the handle key does not exist, should we first add the key and succeed?
+                if the key doesn't exist, this will fail with a NamespaceLookupError
         Output:
             a NamespaceHandle object
         """
+        try:
+            self.get(handle_key)
+        except NamespaceLookupError as err:
+            if create_nodes:
+                self.add(handle_key)
+            else:
+                raise 
         return NamespaceHandle(self, handle_key)
+
+
 
 
 class NamespaceHandle(Namespace):
@@ -265,6 +289,7 @@ class NamespaceHandle(Namespace):
         self.prefix = prefix
         self.root = ns.get(prefix)
 
+
     def __getattr__(self, attr):
         saved_root = self.ns.root
         self.ns.root = self.root
@@ -273,13 +298,19 @@ class NamespaceHandle(Namespace):
         self.ns.root = saved_root
         return retval
 
+
     def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
-        real_nsid = self.prefix + nsid
+        if nsid == self.delineator:
+            real_nsid = self.prefix
+        else:
+            real_nsid = self.prefix + nsid
         return self.ns.get(real_nsid)
+
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
         real_nsid = self.prefix + nsid
         return self.ns.add(real_nsid, *args, **kwargs)
+
 
     def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
         real_nsid = self.prefix + nsid

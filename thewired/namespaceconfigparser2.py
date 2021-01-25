@@ -13,73 +13,16 @@ from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
 class NamespaceConfigParser2(object):
-    def __init__(self, prefix: str = None, node_factory=NamespaceNodeBase):
-        self.prefix = prefix if prefix else ''
+    def __init__(self, node_factory:type=NamespaceNodeBase):
         self.default_node_factory=node_factory
 
         #- special YAML keys that can be used to let this parser know
         #- what type should be used for the node factory and what params to pass it
-        self.meta_keys = ['__type__', '__init__']
+        self.meta_keys = set(['__type__', '__init__'])
 
 
-            
 
-    def _get_node_factory(self, key: str, dictConfig: dict) -> partial:
-        """
-        Description:
-            return a context manager that sets the node factory based on any meta keys that
-            may exist under this key
-        """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_key'))
-
-        #- check the subkeys of this key to see if they have any meta info about how to create the node
-        if any(x in self.meta_keys for x in dictConfig[key].keys()):
-            #- we need to change the node factory from the default
-            try:
-                nf_module_name = '.'.join(dictConfig[key]["__type__"].split('.')[0:-1])
-                nf_symbol_name = dictConfig[key]["__type__"].split('.')[-1]
-                nf_module = import_module(nf_module_name)
-
-            except KeyError:
-                #- no "__type__" key
-                #- leave node_factory set to the default
-                log.debug("key error when trying to access '__type__'")
-                nf_module = None
-
-            except ValueError:
-                #- we have a name, but it might not have a dot at all,
-                #- which would then try to import the empty string and 
-                #- fail with a ValueError
-
-                #- try to use the current module as the module containing the node factory
-                log.debug("value error importing namespace factory module: \"{nf_module_name}\"")
-                nf_module = sys.modules[__name__]
-
-            finally:
-                if nf_module:
-                    node_factory = getattr(nf_module, nf_symbol_name)
-                else:
-                    node_factory = self.default_node_factory
-
-            #- set the parameters for the node factory
-            try:
-                _init_params = dictConfig[key]["__init__"]
-            except KeyError:
-                #- no __init__ key
-                _init_params = dict()
-
-
-            log.debug(f"returning custom {node_factory=} {_init_params=}")
-            return partial(node_factory, **_init_params)
-
-        else:
-            log.debug("returning default node factory")
-            return self.default_node_factory
-            
-
-                
-
-    def parse(self, dictConfig: dict, prefix:str='', namespace:Union[None, Namespace]=None, namespace_factory:type=Namespace) -> Union[Namespace, None]:
+    def parse(self, dictConfig: dict, prefix:str='', namespace:Namespace=None, namespace_factory:type=Namespace) -> Union[Namespace, None]:
         """
         Description:
             parse a configDict into a Namespace object
@@ -99,26 +42,230 @@ class NamespaceConfigParser2(object):
         log.debug(f"enter: {prefix=} {namespace=} {namespace_factory=} {dictConfig=}")
         ns = namespace if namespace else namespace_factory()
 
-        if not dictConfig or len(dictConfig.keys()) <= 0:
+
+        try:
+            dictConfig.keys()
+        except (AttributeError, TypeError):
             return None
 
-        #- create a namespace of objects described by dictConfig Mapping
+
+        #- create namespace as dictConfig describes
         for key in dictConfig.keys():
-            log.debug(f"starting {key=}")
+
             if key not in self.meta_keys:
-                node_factory = self._get_node_factory(key, dictConfig)
+                log.debug(f"parsing {key=}")
+                node_factory = self._create_factory(dictConfig[key], self.default_node_factory)
 
-                #- every key gets turned into a node in the namespace
-                new_node_nsid = nsid.make_child_nsid(prefix, key)
-                log.debug(f"{new_node_nsid=}")
-                log.debug(f"{node_factory=}")
+                if node_factory:
+                    new_node_nsid = nsid.make_child_nsid(prefix, key)
+                    log.debug(f"{new_node_nsid=}")
+                    new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
-                new_node = ns.add_exactly_one(new_node_nsid, node_factory)
+                    if isinstance(dictConfig[key], Mapping):
+                       self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid, namespace=ns)
+                    else:
+                        log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
+                        setattr(new_node, key, dictConfig[key])
 
-                if isinstance(dictConfig[key], Mapping):
-                   log.debug(f"recursing on {key=} {dictConfig[key]}")
-                   self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid, namespace=ns)
-                else:
-                    log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
-                    setattr(new_node, key, dictConfig[key])
         return ns
+
+
+
+    def _create_factory(self, dictConfig: dict, default_factory: Union[None, callable]=None) -> Union[partial, None]:
+        """
+        Description:
+            Create and return the factory function + params as a partial based on any meta keys that
+            may exist under this key
+
+            There's some extra logic for nodes that define an object that must first be instantiated and passed in
+            as a parameter to the nodes __init__ method
+
+        Input:
+            dictConfig: mapping to parse
+
+        Output:
+            a partial made from the parsed factory function with the parsed factory function params
+        """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory'))
+
+        try:
+            keys = dictConfig.keys()
+        except AttributeError:
+            #- the dictConfig isn't a dict anymore
+            log.debug("No factory: not a dict")
+            return None
+
+        node_factory_function = self._parse_meta_factory_function(dictConfig, self.default_node_factory)
+        init_params = self._parse_meta_factory_function_params(dictConfig)
+
+        log.debug(f"returning custom {node_factory_function=} {init_params=}")
+        return partial(node_factory_function, **init_params)
+
+
+
+    def _parse_meta_factory_function(self, dictConfig: dict, default_factory_function: Union[None, callable]=None) -> callable:
+        """
+        Description:
+            create the node factory function from the config, but this part does not deal with
+            parsing the parameters specified for the factory function. Only the callable w/out any params
+
+        Input:
+          dictConfig: the config we are parsing
+
+        Output:
+            callable that should first be combined with the parameters before being called
+
+        Notes:
+            called by:
+                * _create_node_factory
+                * _create_node_factory_param_object
+        """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_bare_function'))
+        nf_module = None    #- "node factory module" - the python module that has the node factory function defined
+        try:
+            nf_module_name = '.'.join(dictConfig["__type__"].split('.')[0:-1])
+            nf_symbol_name = dictConfig["__type__"].split('.')[-1]
+            nf_module = import_module(nf_module_name)
+
+        except KeyError:
+            #- no "__type__" key
+            #- leave node_factory set to the default
+            log.debug("key error when trying to access '__type__'")
+            return default_factory_function
+
+        except ValueError:
+            #- the import_module call failed
+            #- we have a name, but it might not have a dot at all,
+            #- which would then try to import the empty string and 
+            #- fail with a ValueError
+
+            #- try to use the current module as the module containing the node factory
+            log.debug("value error importing namespace factory module: \"{nf_module_name}\"")
+            nf_module = sys.modules[__name__]
+
+        finally:
+            if nf_module:
+                try:
+                    node_factory = getattr(nf_module, nf_symbol_name)
+                except AttributeError as err:
+                    log.debug("specified factory function does not exist in specified module!")
+                    raise ValueError("parsed factory function does not exist in specified module!") from err
+
+                if not callable(node_factory):
+                    log.debug(f"specified node factory is not callable! {dictConfig=}")
+                    raise ValueError(f"parsed node factory {dictConfig['__type__']} is not callable!")
+
+            else:
+                return default_factory_function
+
+        return node_factory
+            
+
+
+    def _parse_meta_factory_function_params(self, dictConfig: dict) -> dict:
+        """
+        Description:
+            Figure out the parameters that are to be passed into the node factory bare function to complete the node factory function
+            by parsing the '__init__' subkey if it exists
+
+            If the '__init__' block has parameters that themselves have a '__type__' key, then this will descend and instantiate those
+            objects
+
+        Input:
+            dictConfig: the config we are parsing
+
+        Output:
+            A dict with all the parameters needed for the node factory to be called
+
+        Notes:
+            Only called by _create_node_factory as a helper method (at same dict key level)
+
+            Only works with dict /kwarg params ATM
+            TODO: make this work with serialized positional args as well
+        """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_bare_params'))
+        init_params = dict()
+
+        if not dictConfig:
+            return dict()
+        try:
+            init_params_config = dictConfig["__init__"]
+        except KeyError:
+            #- no __init__ key, leave it as an empty dict
+            return dict()
+
+        else:
+            #- there is an "__init__" subkey for this node factory parameter
+            try:
+                init_param_names = init_params_config.keys()
+            except AttributeError:
+                log.debug(f"dictConfig[__init__] is not a mapping: {dictConfig['__init__']}")
+                pass
+
+            else:
+                #- check the init params config for more nested meta keys
+                #- that case is when there are objects that first must be instantiated in order
+                #- to be passed as parameters into the node factory bare function to complete
+                #- the node factory function partial
+                for init_param_name in init_param_names:
+                    try:
+                        init_params_config[init_param_name].keys()
+                    except AttributeError:
+                        init_params[init_param_name] = dictConfig["__init__"][init_param_name]
+
+                    else:
+                        if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
+                            log.debug(f"found recursive parameter definition: {init_param_name=}")
+                            log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
+
+                            #init_params[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
+                            init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
+
+                            log.debug(f"created new object: {init_params[init_param_name]=}")
+        return init_params
+
+
+
+    def _create_node_factory_param_object(self, dictConfig:dict) -> Union[object, None]:
+        """
+        Description:
+            instantiates objects defined inside of node factory init function parameters
+            these objects are needed in order to pass in as params to the node factory function
+        Input:
+            dictConfig: the config we are parsing
+        Output:
+            a parameter object instantiated as specified in the config via the meta keys
+        """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_param_objects'))
+        log.debug(f"create_node_factory_param_object: {dictConfig=}")
+
+        if not dictConfig:
+            return None
+        try:
+            keys = dictConfig.keys()
+        except AttributeError:
+            #- no .keys(), dictConfig is no longer a mapping type
+            return None
+
+        #- parse out the function from __type__
+        factory_function = self._parse_meta_factory_function(dictConfig)
+
+        #- parse the parameters and instantiate the objects
+        init_params = dict()
+        try:
+            init_param_names = dictConfig['__init__'].keys()
+            for init_param_name in init_param_names:
+                try:
+                    init_param_keys = dictConfig['__init__'][init_param_name].keys()
+                    #- this init param itself requires an init param
+                    #- TODO
+                    pass
+
+                except AttributeError:
+                    #- this init param is not a mapping type
+                    init_params = dictConfig['__init__'][init_param_name]
+
+        except KeyError:
+            #- no '__init__' key
+            return dict()
+
