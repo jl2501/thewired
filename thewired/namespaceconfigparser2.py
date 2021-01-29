@@ -18,7 +18,7 @@ class NamespaceConfigParser2(object):
 
         #- special YAML keys that can be used to let this parser know
         #- what type should be used for the node factory and what params to pass it
-        self.meta_keys = set(['__type__', '__init__'])
+        self.meta_keys = set(['__class__', '__init__'])
 
 
 
@@ -123,14 +123,14 @@ class NamespaceConfigParser2(object):
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_bare_function'))
         nf_module = None    #- "node factory module" - the python module that has the node factory function defined
         try:
-            nf_module_name = '.'.join(dictConfig["__type__"].split('.')[0:-1])
-            nf_symbol_name = dictConfig["__type__"].split('.')[-1]
+            nf_module_name = '.'.join(dictConfig["__class__"].split('.')[0:-1])
+            nf_symbol_name = dictConfig["__class__"].split('.')[-1]
             nf_module = import_module(nf_module_name)
 
         except KeyError:
-            #- no "__type__" key
+            #- no "__class__" key
             #- leave node_factory set to the default
-            log.debug("key error when trying to access '__type__'")
+            log.debug("key error when trying to access '__class__'")
             return default_factory_function
 
         except ValueError:
@@ -153,7 +153,7 @@ class NamespaceConfigParser2(object):
 
                 if not callable(node_factory):
                     log.debug(f"specified node factory is not callable! {dictConfig=}")
-                    raise ValueError(f"parsed node factory {dictConfig['__type__']} is not callable!")
+                    raise ValueError(f"parsed node factory {dictConfig['__class__']} is not callable!")
 
             else:
                 return default_factory_function
@@ -168,7 +168,7 @@ class NamespaceConfigParser2(object):
             Figure out the parameters that are to be passed into the node factory bare function to complete the node factory function
             by parsing the '__init__' subkey if it exists
 
-            If the '__init__' block has parameters that themselves have a '__type__' key, then this will descend and instantiate those
+            If the '__init__' block has parameters that themselves have a '__class__' key, then this will descend and instantiate those
             objects
 
         Input:
@@ -247,7 +247,7 @@ class NamespaceConfigParser2(object):
             #- no .keys(), dictConfig is no longer a mapping type
             return None
 
-        #- parse out the function from __type__
+        #- parse out the function from __class__
         factory_function = self._parse_meta_factory_function(dictConfig)
 
         #- parse the parameters and instantiate the objects
