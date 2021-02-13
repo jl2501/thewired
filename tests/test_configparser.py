@@ -81,7 +81,7 @@ def test_parse_meta_1():
     test_dict = {
         "topkey" : {
             "user1" : {
-                "__type__": "thewired.SecondLifeNode"
+                "__class__": "thewired.SecondLifeNode"
             }
         }
     }
@@ -99,7 +99,7 @@ def test_parse_meta_2():
     test_dict = {
         "topkey" : {
             "user1" : {
-                "__type__": "thewired.SecondLifeNode",
+                "__class__": "thewired.SecondLifeNode",
                 "__init__": {
                     "a": "a value for param1",
                     "b" : "param2's value"
@@ -125,10 +125,10 @@ def test_parse_meta_nested_1():
     test_dict = {
         "topkey" : {
             "subkey1" : {
-                "__type__" : "thewired.testobjects.SomeNodeType",
+                "__class__" : "thewired.testobjects.SomeNodeType",
                 "__init__" : {
                     "something" : {
-                        "__type__" : "thewired.testobjects.Something",
+                        "__class__" : "thewired.testobjects.Something",
                         "__init__" : {
                             "arg1" : "some value"
                         }
@@ -151,13 +151,13 @@ def test_parse_meta_nested_2():
     test_dict = {
         "topkey" : {
             "subkey1" : {
-                "__type__" : "thewired.testobjects.SomeOtherNodeType",
+                "__class__" : "thewired.testobjects.SomeOtherNodeType",
                 "__init__" : {
                     "somethingelse" : {
-                        "__type__" : "thewired.testobjects.SomethingElse",
+                        "__class__" : "thewired.testobjects.SomethingElse",
                         "__init__" : {
                             "something" : {
-                                "__type__" : "thewired.testobjects.Something",
+                                "__class__" : "thewired.testobjects.Something",
                                 "__init__" : {
                                     "arg1" : "some value"
                                 }
@@ -175,6 +175,38 @@ def test_parse_meta_nested_2():
 
     assert isinstance(ns.root, NamespaceNodeBase)
 
-    from thewired.testobjects import Something, SomethingElse, SomeOtherNodeType
+    from thewired.testobjects import SomeOtherNodeType
     assert isinstance(ns.get(".topkey.subkey1"), SomeOtherNodeType)
     assert ns.root.topkey.subkey1.something_elses_thing == "some value"
+
+
+def test_parse_dynamic_type_1():
+    def callfunc(self):
+        s = "called callfunc!"
+        print(s)
+        return s
+
+    test_dict = {
+        "topkey" : {
+            "subkey1" : {
+                "__type__" : {
+                    "name" : "SomeTypeName",
+                    "bases" : ["thewired.NamespaceNodeBase"],
+                    "dict" : {
+                        "__call__" : callfunc
+                    }
+                }
+            }
+        }
+    }
+
+    parser = NamespaceConfigParser2()
+    ns = parser.parse(test_dict)
+
+    assert isinstance(ns.get('.topkey'), NamespaceNodeBase)
+
+    #- always adds NamespaceNodeBase as a base type
+    assert isinstance(ns.get('.topkey.subkey1'), NamespaceNodeBase)
+    assert ns.get('.topkey.subkey1').__class__.__name__ == 'SomeTypeName'
+    assert callable(ns.get('.topkey.subkey1'))
+    assert ns.root.topkey.subkey1() == "called callfunc!"
