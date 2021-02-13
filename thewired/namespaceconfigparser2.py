@@ -18,7 +18,7 @@ class NamespaceConfigParser2(object):
 
         #- special YAML keys that can be used to let this parser know
         #- what type should be used for the node factory and what params to pass it
-        self.meta_keys = set(['__class__', '__init__'])
+        self.meta_keys = set(['__class__', '__init__', '__type__'])
 
 
 
@@ -52,6 +52,7 @@ class NamespaceConfigParser2(object):
         #- create namespace as dictConfig describes
         for key in dictConfig.keys():
 
+            #- NB: meta keys can not be top level keys with this current pattern
             if key not in self.meta_keys:
                 log.debug(f"parsing {key=}")
                 node_factory = self._create_factory(dictConfig[key], self.default_node_factory)
@@ -103,6 +104,7 @@ class NamespaceConfigParser2(object):
 
 
 
+
     def _parse_meta_factory_function(self, dictConfig: dict, default_factory_function: Union[None, callable]=None) -> callable:
         """
         Description:
@@ -121,6 +123,108 @@ class NamespaceConfigParser2(object):
                 * _create_node_factory_param_object
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_bare_function'))
+
+        factory_func = self._parse_meta_factory_function_dynamic(dictConfig)
+        if not factory_func:
+            factory_func = self._parse_meta_factory_function_static(dictConfig, default_factory_function)
+
+        #TODO: when static parser retuns None like dynamic
+        # if not factory_func:
+        # factory_func = default_factory_func
+
+        return factory_func
+
+
+
+
+    def _parse_meta_factory_function_dynamic(self, dictConfig: dict) -> Union[callable, None]:
+        #- dyty == "dynamic type"
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_dynamic'))
+        try:
+            dyty_name = dictConfig["__type__"]["name"]
+            dyty_bases = dictConfig["__type__"]["bases"]
+            dyty_dict = dictConfig["__type__"]["dict"]
+
+            dyty_bases = self._parse_meta_factory_function_dynamic_bases(dyty_bases)
+            
+            log.error(f"{dyty_name=}")
+            log.error(f"{dyty_bases=}")
+            log.error(f"{dyty_dict=}")
+            dyty = type(dyty_name, dyty_bases, dyty_dict)
+            return dyty
+
+        except KeyError:
+           return None
+
+
+
+
+    def _parse_meta_factory_function_dynamic_bases(self, base_names: list) -> tuple:
+        """
+        Description:
+            takes the list of strings of class names and turns it into a tuple of type objects
+            required before passing the bases to `type` builtin
+        Input:
+            bases: a list of strings of base class names
+        Output:
+            tuple of types created from the names
+
+        TODO: this was straight copied from _parse_meta_factory_function_static. Refactor into a shared method call
+            that can capture the similar logic for importing the module and getting the symbol as an object
+        """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_dynamic_bases'))
+
+        bases = list()  # will be returned value
+
+        for basename in base_names:
+            module = None    #- the python module that has the class 
+            try:
+                module_name = '.'.join(basename.split('.')[0:-1])
+                symbol_name = basename.split('.')[-1]
+                module = import_module(module_name)
+
+
+            except ValueError:
+                #- the import_module call failed
+                #- we have a name, but it might not have a dot at all,
+                #- which would then try to import the empty string and 
+                #- fail with a ValueError
+
+                #- try to use thewired as the base import lib name
+                log.debug("value error importing: \"{module_name}\". Defaulting to 'thewired'.")
+                module = import_module("thewired")
+
+            finally:
+                if module:
+                    try:
+                        cls = getattr(module, symbol_name)
+
+                    except AttributeError as err:
+                        log.debug(f"specified class ({symbol_name}) does not exist in specified module ({module_name})!")
+                        raise ValueError(f"\"{symbol_name} does not exist in {module_name}!") from err
+
+                    else:
+                        bases.append(cls)
+
+        return tuple(bases)
+
+
+
+    def _parse_meta_factory_function_static(self, dictConfig: dict, default_factory_function: callable) -> callable:
+        """
+        Description:
+            parses a staticly typed node object config ("__class__", "__init__" keys)
+
+        Input:
+            dictConfig: config dict (deserialized yaml) we are parsing
+            default_factory_function: what to return if we don't find a static type definition
+
+        Output:
+            always returns a callable. Either what was parsed or the default if it failed to parse
+            TODO: unify semanitcs btw this and dynamci parser. return None instead of passing default
+        """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_static'))
+        #- pick back up here in case of KeyError
         nf_module = None    #- "node factory module" - the python module that has the node factory function defined
         try:
             nf_module_name = '.'.join(dictConfig["__class__"].split('.')[0:-1])
@@ -159,7 +263,7 @@ class NamespaceConfigParser2(object):
                 return default_factory_function
 
         return node_factory
-            
+
 
 
     def _parse_meta_factory_function_params(self, dictConfig: dict) -> dict:
