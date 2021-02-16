@@ -147,9 +147,9 @@ class NamespaceConfigParser2(object):
 
             dyty_bases = self._parse_meta_factory_function_dynamic_bases(dyty_bases)
             
-            log.error(f"{dyty_name=}")
-            log.error(f"{dyty_bases=}")
-            log.error(f"{dyty_dict=}")
+            log.debug(f"{dyty_name=}")
+            log.debug(f"{dyty_bases=}")
+            log.debug(f"{dyty_dict=}")
             dyty = type(dyty_name, dyty_bases, dyty_dict)
             return dyty
 
