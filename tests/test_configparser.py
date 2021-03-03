@@ -210,3 +210,71 @@ def test_parse_dynamic_type_1():
     assert ns.get('.topkey.subkey1').__class__.__name__ == 'SomeTypeName'
     assert callable(ns.get('.topkey.subkey1'))
     assert ns.root.topkey.subkey1() == "called callfunc!"
+
+
+def test_input_mutator_1():
+    def callfunc(self):
+        s = "called callfunc!"
+        print(s)
+        return s
+
+    test_dict = {
+        "topkey" : {
+            "mutate_me" : {
+                "__type__" : {
+                    "name" : "SomeTypeName",
+                    "bases" : ["thewired.NamespaceNodeBase"],
+                    "dict" : {
+                        "__call__" : callfunc
+                    }
+                }
+            }
+        }
+    }
+
+    target_keys = ['mutate_me']
+    def input_mutator(dictConfig, key):
+        print("input_mutator called!")
+        mutated_config = dictConfig.copy()
+        mutated_config[key]['__type__']['name'] = 'MutatedTypeName'
+        return mutated_config, key
+
+    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
+    ns = parser.parse(test_dict)
+    assert(ns.root.topkey.mutate_me.__class__.__name__ == 'MutatedTypeName')
+
+def test_input_mutator_2():
+    def callfunc(self):
+        s = "called callfunc!"
+        print(s)
+        return s
+
+
+    def input_mutator(dictConfig, key):
+        print("input_mutator called!")
+        mutated_config = dictConfig.copy()
+        mutated_config[key]['__type__']['name'] = 'MutatedTypeName'
+        mutated_config['mutated_node'] = mutated_config[key]
+        mutated_config.pop(key)
+        return mutated_config, 'mutated_node'
+
+    test_dict = {
+        "topkey" : {
+            "mutate_me" : {
+                "__type__" : {
+                    "name" : "SomeTypeName",
+                    "bases" : ["thewired.NamespaceNodeBase"],
+                    "dict" : {
+                        "__call__" : callfunc
+                    }
+                }
+            }
+        }
+    }
+
+
+    target_keys = ['mutate_me']
+    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
+    ns = parser.parse(test_dict)
+    assert(ns.root.topkey.mutated_node.__class__.__name__ == 'MutatedTypeName')
+    assert(str(ns.root.topkey.mutated_node.nsid) == '.topkey.mutated_node')
