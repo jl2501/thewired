@@ -1,6 +1,6 @@
 import sys
 import typing
-from typing import Dict, Union
+from typing import Dict, Union, Callable, List
 from collections.abc import Mapping
 from importlib import import_module
 from functools import partial
@@ -13,12 +13,18 @@ from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
 class NamespaceConfigParser2(object):
-    def __init__(self, node_factory:type=NamespaceNodeBase):
+    def __init__(self, 
+            node_factory:type=NamespaceNodeBase,
+            callback_target_keys:Union[List[str],None]=None,
+            input_mutator_callback:Union[Callable, None]=None):
+
         self.default_node_factory=node_factory
 
         #- special YAML keys that can be used to let this parser know
         #- what type should be used for the node factory and what params to pass it
         self.meta_keys = set(['__class__', '__init__', '__type__'])
+        self._input_mutator_targets = callback_target_keys if callback_target_keys else list()
+        self._input_mutator = input_mutator_callback if input_mutator_callback else lambda x,y: (x,y)
 
 
 
@@ -50,7 +56,10 @@ class NamespaceConfigParser2(object):
 
 
         #- create namespace as dictConfig describes
-        for key in dictConfig.keys():
+        for key in dictConfig.copy().keys():
+
+            if key in self._input_mutator_targets:
+                dictConfig, key = self._input_mutator(dictConfig, key)
 
             #- NB: meta keys can not be top level keys with this current pattern
             if key not in self.meta_keys:
