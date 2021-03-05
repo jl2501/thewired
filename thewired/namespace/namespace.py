@@ -10,7 +10,7 @@ Notes:
 
 from logging import getLogger, LoggerAdapter
 from types import SimpleNamespace
-from typing import Union, List
+from typing import Union, List, Dict
 from warnings import warn
 
 from thewired.loginfo import make_log_adapter
@@ -39,9 +39,6 @@ class Namespace(SimpleNamespace):
             prefix: what namespace prefix is applied to all nodes in this namespace
             default_node_factory: default factory for creating new Nodes in this namespace
         """
-        self.log = LoggerAdapter(logger,
-            {'name_ext' : f'{self.__class__.__name__}.__init__'})
-
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
 
@@ -230,13 +227,15 @@ class Namespace(SimpleNamespace):
         return node
 
 
-    def walk(self, start:Union[NamespaceNodeBase,None]=None, walk_dict:Union[dict,None]=None) -> dict:
+    def walk(self, start:Union[NamespaceNodeBase,None]=None, walk_dict:Union[Dict,None]=None) -> Union[Dict, object]:
         """
         Description:
             walk the namespace nodes
         Output:
             Dictionary representing the namespace's structure
         """
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.walk"))
+
         if start is None:
             start = self.root
 
@@ -244,15 +243,22 @@ class Namespace(SimpleNamespace):
             walk_dict = dict()
 
         if not isinstance(start, NamespaceNodeBase):
-            return dict()
+            return start
 
         key = nsid_basename(start.nsid.nsid)
         walk_dict[key] = dict()
 
+
         for attr_name in dir(start):
-            if not attr_name.startswith('_'):
-                updated_walk = self.walk(start=getattr(start, attr_name),
-                                    walk_dict=walk_dict[key])
+            if not attr_name.startswith('_') and not attr_name == "nsid":
+                attr = getattr(start, attr_name)
+                updated_dict = self.walk(start=attr, walk_dict=walk_dict[key])
+
+                if not isinstance(updated_dict, dict):
+                    walk_dict[key][attr_name] = attr
+                else:
+                    walk_dict[key].update(updated_dict)
+
         return walk_dict
 
 
