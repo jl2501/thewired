@@ -161,7 +161,10 @@ class Namespace(SimpleNamespace):
                     try:
                         new_node = node_factory(new_node_nsid, self)
                     except TypeError:
-                            new_node = node_factory()
+                        try:
+                            new_node = node_factory(new_node_nsid)
+                        except TypeError:
+                                new_node = node_factory()
             else:
                 new_node = self.default_node_factory(new_node_nsid, self)
             created_nodes.append(new_node)

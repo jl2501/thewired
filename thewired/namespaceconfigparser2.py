@@ -14,6 +14,7 @@ logger = getLogger(__name__)
 
 class NamespaceConfigParser2(object):
     def __init__(self, 
+            namespace=None,
             node_factory:type=NamespaceNodeBase,
             callback_target_keys:Union[List[str],None]=None,
             input_mutator_callback:Union[Callable, None]=None):
@@ -25,10 +26,11 @@ class NamespaceConfigParser2(object):
         self.meta_keys = set(['__class__', '__init__', '__type__'])
         self._input_mutator_targets = callback_target_keys if callback_target_keys else list()
         self._input_mutator = input_mutator_callback if input_mutator_callback else lambda x,y: (x,y)
+        self.ns = namespace if namespace else Namespace()
 
 
 
-    def parse(self, dictConfig: dict, prefix:str='', namespace:Namespace=None, namespace_factory:type=Namespace) -> Union[Namespace, None]:
+    def parse(self, dictConfig: dict, prefix:str='') -> Union[Namespace, None]:
         """
         Description:
             parse a configDict into a Namespace object
@@ -45,15 +47,13 @@ class NamespaceConfigParser2(object):
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.parse'))
 
-        log.debug(f"enter: {prefix=} {namespace=} {namespace_factory=} {dictConfig=}")
-        ns = namespace if namespace else namespace_factory()
-
+        log.debug(f"enter: {prefix=} {dictConfig=}")
+        ns = self.ns
 
         try:
             dictConfig.keys()
         except (AttributeError, TypeError):
             return None
-
 
         #- create namespace as dictConfig describes
         for key in dictConfig.copy().keys():
@@ -72,7 +72,7 @@ class NamespaceConfigParser2(object):
                     new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
                     if isinstance(dictConfig[key], Mapping):
-                       self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid, namespace=ns)
+                       self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid)
                     else:
                         log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
                         setattr(new_node, key, dictConfig[key])
@@ -243,7 +243,7 @@ class NamespaceConfigParser2(object):
         except KeyError:
             #- no "__class__" key
             #- leave node_factory set to the default
-            log.debug("key error when trying to access '__class__'")
+            log.debug(f"key error when trying to access '__class__': keys: {list(dictConfig.keys())}")
             return default_factory_function
 
         except ValueError:
