@@ -284,6 +284,23 @@ class Namespace(SimpleNamespace):
                 raise 
         return NamespaceHandle(self, handle_key)
 
+    def get_subnodes(self, start_node_nsid):
+        """
+        Description:
+        return a generator for all the nodes that are descendants of the node at the given NSID <start_node_nsid>
+        Input:
+        start_node_nsid: what NSID to consider the root
+        Output:
+        all the nodes that are descendants of the node with NSID given as start_node_nsid
+        """
+        start_node = self.get(start_node_nsid)
+        for attr_name in dir(start_node):
+            attr = getattr(start_node, attr_name)
+            if isinstance(attr, NamespaceNodeBase):
+                yield attr
+                yield from self.get_subnodes(str(attr.nsid))
+
+
 
 
 

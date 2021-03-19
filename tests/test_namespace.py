@@ -211,3 +211,12 @@ class TestNamespace(unittest.TestCase):
         node = handle.remove(".too")
 
         assert node.nsid.nsid == ".more.stuff.here.too"
+
+def test_get_subnodes():
+    ns = Namespace()
+    ns.add(".a.few.nodes.here.and.there.and.everywhere")
+
+    subnodes = ns.get_subnodes('.a.few')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a.few.nodes', '.a.few.nodes.here', '.a.few.nodes.here.and', '.a.few.nodes.here.and.there', '.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
