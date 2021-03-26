@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 import thewired.namespace 
@@ -234,8 +235,9 @@ def test_get_subnodes_from_handle():
 
 
 
-def test_get_subnodes_from_nested_handles():
+def test_get_subnodes_from_nested_handles(caplog):
     ns = Namespace()
+    #caplog.set_level(logging.DEBUG)
     ns.add(".a.few.nodes.here.and.there.and.everywhere")
     handle1 = ns.get_handle(".a.few")
     handle2 = handle1.get_handle(".nodes")
