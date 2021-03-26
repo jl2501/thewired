@@ -16,11 +16,11 @@ from typing import Union
 NsidU = Union[str, Nsid]
 
 class SomeNodeType(NamespaceNodeBase):
-    def __init__(self, nsid: NsidU, namespace: Namespace, something: Something):
+    def __init__(self, something: Something, *, nsid: NsidU, namespace: Namespace):
         self.somethings_thing = something.thing
         #super().__init__('.SomeNamespaceNode_Instance', Namespace())
         #lol. bug ^^ that confuses ns.add() TODO fix
-        super().__init__(nsid, namespace)
+        super().__init__(nsid=nsid, namespace=namespace)
 
 
 class SomethingElse(object):
@@ -28,6 +28,6 @@ class SomethingElse(object):
         self.somethings_thing = something.thing
 
 class SomeOtherNodeType(NamespaceNodeBase):
-    def __init__(self, nsid: NsidU, namespace: Namespace, somethingelse: SomethingElse):
+    def __init__(self, somethingelse: SomethingElse, *, nsid: NsidU, namespace: Namespace):
         self.something_elses_thing = somethingelse.somethings_thing
-        super().__init__(nsid, namespace)
+        super().__init__(nsid=nsid, namespace=namespace)

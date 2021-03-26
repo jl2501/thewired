@@ -7,8 +7,8 @@ class DelegateNode(NamespaceNodeBase):
     """
     delegates all missed attribute lookups to <delegate> object via __getattr__
     """
-    def __init__(self, nsid, namespace, delegate):
-        super().__init__(nsid, namespace)
+    def __init__(self, delegate, *, nsid, namespace):
+        super().__init__(nsid=nsid, namespace=namespace)
         self._delegate = delegate
 
     def __getattr__(self, attr):

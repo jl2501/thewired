@@ -16,7 +16,7 @@ from .base import NamespaceNodeBase
 from thewired.namespace.nsid import is_valid_symref_str
 
 class SecondLifeNode(NamespaceNodeBase):
-    def __init__(self, nsid, namespace, secondlife=None, *args, **kwargs):
+    def __init__(self, *args, nsid, namespace, secondlife=None, **kwargs):
         """
         Input:
             nsid: NSID string
@@ -27,7 +27,7 @@ class SecondLifeNode(NamespaceNodeBase):
                     * NSID - value of the attribute is return value from invoking the Node given by the NSID
                     * anything else - if it doesn't match the others, return this value exactly as it is
         """
-        super().__init__(nsid, namespace, *args, **kwargs)
+        super().__init__(*args, nsid=nsid, namespace=namespace, **kwargs)
         self._secondlife = secondlife
 
     def __getattr__(self, attr):

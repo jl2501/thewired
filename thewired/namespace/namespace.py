@@ -60,7 +60,7 @@ class Namespace(SimpleNamespace):
             raise ValueError(f"default_node_facotry must be callable!")
 
         try:
-            x = func(nsid=".a.b.c", namespace=None)
+            x = func(nsid=".a.b.c", namespace=self)
         except TypeError as err:
             raise ValueError("default_node_factory either does not take 'nsid' and 'namespace' keyword parameters, or has additional required parameters!")
 
@@ -149,21 +149,14 @@ class Namespace(SimpleNamespace):
             if i == len(nsid_segments) - 1:
                 log.debug(f"creating node: {node_factory=})")
 
-                #TODO fix this to require the factory function to be callable w/out args
-                #force folks to pass in a partial if necessary
-                # for now just plow on through I guess
                 try:
-                    new_node = node_factory(new_node_nsid, self, *args, **kwargs)
-                except TypeError:
-                    try:
-                        new_node = node_factory(new_node_nsid, self)
-                    except TypeError:
-                        try:
-                            new_node = node_factory(new_node_nsid)
-                        except TypeError:
-                                new_node = node_factory()
+                    new_node = node_factory(*args, nsid=new_node_nsid, namespace=self, **kwargs)
+                except TypeError as e:
+                    raise TypeError(f"node_factory failed to create node: {str(e)}") from e
+
             else:
-                new_node = self.default_node_factory(new_node_nsid, self)
+                new_node = self.default_node_factory(nsid=new_node_nsid, namespace=self)
+
             created_nodes.append(new_node)
             setattr(deepest_ancestor, child_attribute_name, new_node)
             deepest_ancestor = getattr(deepest_ancestor, child_attribute_name)
@@ -326,18 +319,27 @@ class NamespaceHandle(Namespace):
 
 
     def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get"))
         if nsid == self.delineator:
             real_nsid = self.prefix
         else:
             real_nsid = self.prefix + nsid
+
+        log.debug(f"Getting {real_nsid=}")
         return self.ns.get(real_nsid)
 
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add"))
         real_nsid = self.prefix + nsid
+
+        log.debug(f"Adding {real_nsid=}")
         return self.ns.add(real_nsid, *args, **kwargs)
 
 
     def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.remove"))
         real_nsid = self.prefix + nsid
+
+        log.debug("Removing: {real_nsid=}")
         return self.ns.remove(real_nsid)
