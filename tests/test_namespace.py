@@ -231,3 +231,16 @@ def test_get_subnodes_from_handle():
     nsids = [str(x.nsid) for x in subnodes]
 
     assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
+
+
+
+def test_get_subnodes_from_nested_handles():
+    ns = Namespace()
+    ns.add(".a.few.nodes.here.and.there.and.everywhere")
+    handle1 = ns.get_handle(".a.few")
+    handle2 = handle1.get_handle(".nodes")
+
+    subnodes = handle2.get_subnodes('.here.and.there')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
