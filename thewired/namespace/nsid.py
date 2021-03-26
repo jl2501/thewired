@@ -127,6 +127,8 @@ def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.', f
             else:
                 #- to be valid must be its own NS root
                 valid_nsid = nsid_root_ok
+    else:
+        valid_nsid = False
     return valid_nsid
 
 

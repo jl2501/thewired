@@ -112,7 +112,7 @@ class TestNamespace(unittest.TestCase):
     def test_default_node_factory(self):
         class NewNamespaceNodeBase(NamespaceNodeBase):
             def __init__(self, nsid=None, namespace=None):
-                super().__init__(nsid, namespace)
+                super().__init__(nsid=nsid, namespace=namespace)
 
         ns = Namespace(default_node_factory=NewNamespaceNodeBase)
         new_nodes = ns.add('.this.is.all.new')
@@ -211,3 +211,12 @@ class TestNamespace(unittest.TestCase):
         node = handle.remove(".too")
 
         assert node.nsid.nsid == ".more.stuff.here.too"
+
+def test_get_subnodes():
+    ns = Namespace()
+    ns.add(".a.few.nodes.here.and.there.and.everywhere")
+
+    subnodes = ns.get_subnodes('.a.few')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a.few.nodes', '.a.few.nodes.here', '.a.few.nodes.here.and', '.a.few.nodes.here.and.there', '.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']

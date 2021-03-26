@@ -10,7 +10,7 @@ Notes:
 
 from logging import getLogger, LoggerAdapter
 from types import SimpleNamespace
-from typing import Union, List
+from typing import Union, List, Dict
 from warnings import warn
 
 from thewired.loginfo import make_log_adapter
@@ -39,9 +39,6 @@ class Namespace(SimpleNamespace):
             prefix: what namespace prefix is applied to all nodes in this namespace
             default_node_factory: default factory for creating new Nodes in this namespace
         """
-        self.log = LoggerAdapter(logger,
-            {'name_ext' : f'{self.__class__.__name__}.__init__'})
-
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
 
@@ -63,7 +60,7 @@ class Namespace(SimpleNamespace):
             raise ValueError(f"default_node_facotry must be callable!")
 
         try:
-            x = func(nsid=".a.b.c", namespace=None)
+            x = func(nsid=".a.b.c", namespace=self)
         except TypeError as err:
             raise ValueError("default_node_factory either does not take 'nsid' and 'namespace' keyword parameters, or has additional required parameters!")
 
@@ -152,21 +149,14 @@ class Namespace(SimpleNamespace):
             if i == len(nsid_segments) - 1:
                 log.debug(f"creating node: {node_factory=})")
 
-                #TODO fix this to require the factory function to be callable w/out args
-                #force folks to pass in a partial if necessary
-                # for now just plow on through I guess
                 try:
-                    new_node = node_factory(new_node_nsid, self, *args, **kwargs)
-                except TypeError:
-                    try:
-                        new_node = node_factory(new_node_nsid, self)
-                    except TypeError:
-                        try:
-                            new_node = node_factory(new_node_nsid)
-                        except TypeError:
-                                new_node = node_factory()
+                    new_node = node_factory(*args, nsid=new_node_nsid, namespace=self, **kwargs)
+                except TypeError as e:
+                    raise TypeError(f"node_factory failed to create node: {str(e)}") from e
+
             else:
-                new_node = self.default_node_factory(new_node_nsid, self)
+                new_node = self.default_node_factory(nsid=new_node_nsid, namespace=self)
+
             created_nodes.append(new_node)
             setattr(deepest_ancestor, child_attribute_name, new_node)
             deepest_ancestor = getattr(deepest_ancestor, child_attribute_name)
@@ -230,13 +220,15 @@ class Namespace(SimpleNamespace):
         return node
 
 
-    def walk(self, start:Union[NamespaceNodeBase,None]=None, walk_dict:Union[dict,None]=None) -> dict:
+    def walk(self, start:Union[NamespaceNodeBase,None]=None, walk_dict:Union[Dict,None]=None) -> Union[Dict, object]:
         """
         Description:
             walk the namespace nodes
         Output:
             Dictionary representing the namespace's structure
         """
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.walk"))
+
         if start is None:
             start = self.root
 
@@ -244,15 +236,22 @@ class Namespace(SimpleNamespace):
             walk_dict = dict()
 
         if not isinstance(start, NamespaceNodeBase):
-            return dict()
+            return start
 
         key = nsid_basename(start.nsid.nsid)
         walk_dict[key] = dict()
 
+
         for attr_name in dir(start):
-            if not attr_name.startswith('_'):
-                updated_walk = self.walk(start=getattr(start, attr_name),
-                                    walk_dict=walk_dict[key])
+            if not attr_name.startswith('_') and not attr_name == "nsid":
+                attr = getattr(start, attr_name)
+                updated_dict = self.walk(start=attr, walk_dict=walk_dict[key])
+
+                if not isinstance(updated_dict, dict):
+                    walk_dict[key][attr_name] = attr
+                else:
+                    walk_dict[key].update(updated_dict)
+
         return walk_dict
 
 
@@ -277,6 +276,23 @@ class Namespace(SimpleNamespace):
             else:
                 raise 
         return NamespaceHandle(self, handle_key)
+
+    def get_subnodes(self, start_node_nsid):
+        """
+        Description:
+        return a generator for all the nodes that are descendants of the node at the given NSID <start_node_nsid>
+        Input:
+        start_node_nsid: what NSID to consider the root
+        Output:
+        all the nodes that are descendants of the node with NSID given as start_node_nsid
+        """
+        start_node = self.get(start_node_nsid)
+        for attr_name in dir(start_node):
+            attr = getattr(start_node, attr_name)
+            if isinstance(attr, NamespaceNodeBase):
+                yield attr
+                yield from self.get_subnodes(str(attr.nsid))
+
 
 
 
@@ -303,18 +319,27 @@ class NamespaceHandle(Namespace):
 
 
     def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get"))
         if nsid == self.delineator:
             real_nsid = self.prefix
         else:
             real_nsid = self.prefix + nsid
+
+        log.debug(f"Getting {real_nsid=}")
         return self.ns.get(real_nsid)
 
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add"))
         real_nsid = self.prefix + nsid
+
+        log.debug(f"Adding {real_nsid=}")
         return self.ns.add(real_nsid, *args, **kwargs)
 
 
     def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.remove"))
         real_nsid = self.prefix + nsid
+
+        log.debug("Removing: {real_nsid=}")
         return self.ns.remove(real_nsid)
