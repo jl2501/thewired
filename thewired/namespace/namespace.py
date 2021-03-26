@@ -90,7 +90,7 @@ class Namespace(SimpleNamespace):
 
         n = 0
         while current_node.nsid != _nsid_:
-            log.debug(f"{_nsid_=} != {current_node.nsid=}")
+            log.debug(f"target {_nsid_=} != {current_node.nsid=}")
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
@@ -102,6 +102,7 @@ class Namespace(SimpleNamespace):
             except AttributeError:
                 raise NamespaceLookupError(f"{current_node} has no attribute named '{nsid_segment}'")
             n += 1
+        log.debug(f"found {_nsid_=} == {current_node.nsid=}")
         return current_node
 
 
@@ -296,7 +297,6 @@ class Namespace(SimpleNamespace):
 
 
 
-
 class NamespaceHandle(Namespace):
     """
     Description:
@@ -319,27 +319,53 @@ class NamespaceHandle(Namespace):
 
 
     def get(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
-        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get"))
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get: {self.prefix=}"))
         if nsid == self.delineator:
             real_nsid = self.prefix
         else:
             real_nsid = self.prefix + nsid
 
-        log.debug(f"Getting {real_nsid=}")
+        log.debug(f"getting {real_nsid=}")
         return self.ns.get(real_nsid)
 
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
-        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add"))
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add: {self.prefix=}"))
         real_nsid = self.prefix + nsid
 
-        log.debug(f"Adding {real_nsid=}")
+        log.debug(f"adding {real_nsid=}")
         return self.ns.add(real_nsid, *args, **kwargs)
 
 
     def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
-        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.remove"))
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.remove: {self.prefix=}"))
         real_nsid = self.prefix + nsid
 
-        log.debug("Removing: {real_nsid=}")
+        log.debug(f"removing: {real_nsid=}")
         return self.ns.remove(real_nsid)
+
+
+    def get_subnodes(self, start_node_nsid):
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get_subnodes: {self.prefix=}"))
+        log.debug(f"{start_node_nsid=}")
+        start_node = self.get(start_node_nsid)
+        for attr_name in dir(start_node):
+            attr = getattr(start_node, attr_name)
+            if isinstance(attr, NamespaceNodeBase):
+                yield attr
+                next_nsid = '.' + self.strip_prefix(str(attr.nsid))
+
+                log.debug(f"{next_nsid=}")
+                yield from self.get_subnodes(next_nsid)
+
+
+    def strip_prefix(self, nsid:str) -> str:
+        try:
+            nsid = '.' + self.ns.strip_prefix(nsid)
+        except AttributeError:
+            #- self.ns is a Namespace, not a stacked NamespaceHandle
+            pass
+
+        return strip_common_prefix(self.prefix, nsid)[1]
+
+

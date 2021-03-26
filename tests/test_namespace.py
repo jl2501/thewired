@@ -1,3 +1,4 @@
+import logging
 import unittest
 
 import thewired.namespace 
@@ -220,3 +221,28 @@ def test_get_subnodes():
     nsids = [str(x.nsid) for x in subnodes]
 
     assert nsids == ['.a.few.nodes', '.a.few.nodes.here', '.a.few.nodes.here.and', '.a.few.nodes.here.and.there', '.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
+
+
+def test_get_subnodes_from_handle():
+    ns = Namespace()
+    ns.add(".a.few.nodes.here.and.there.and.everywhere")
+    handle = ns.get_handle(".a.few")
+
+    subnodes = handle.get_subnodes('.nodes.here.and.there')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
+
+
+
+def test_get_subnodes_from_nested_handles(caplog):
+    ns = Namespace()
+    #caplog.set_level(logging.DEBUG)
+    ns.add(".a.few.nodes.here.and.there.and.everywhere")
+    handle1 = ns.get_handle(".a.few")
+    handle2 = handle1.get_handle(".nodes")
+
+    subnodes = handle2.get_subnodes('.here.and.there')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
