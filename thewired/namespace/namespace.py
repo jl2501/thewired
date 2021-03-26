@@ -343,3 +343,15 @@ class NamespaceHandle(Namespace):
 
         log.debug("Removing: {real_nsid=}")
         return self.ns.remove(real_nsid)
+
+    def get_subnodes(self, start_node_nsid):
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get_subnodes"))
+        start_node = self.get(start_node_nsid)
+        for attr_name in dir(start_node):
+            attr = getattr(start_node, attr_name)
+            if isinstance(attr, NamespaceNodeBase):
+                yield attr
+                log.debug(f"{str(attr.nsid)=} {self.prefix=}")
+                yield from self.get_subnodes('.' + strip_common_prefix(self.prefix, str(attr.nsid))[1])
+
+
