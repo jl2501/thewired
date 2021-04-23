@@ -65,7 +65,7 @@ class Nsid(NsidBase):
         self.nsid = ''
 
         validate_nsid(nsid, symrefs_ok=False, fully_qualified=fully_qualified)
-        log.debug(f'nsid validated: {nsid}')
+        #log.debug(f'nsid validated: {nsid}')
         self.nsid = str(nsid)
 
 
@@ -151,7 +151,7 @@ def sanitize_nsid(nsid, separator='.'):
     """
     log = make_log_adapter(logger, None, 'sanitize_nsid')
     try:
-        sanitized_nsid = re.sub(f"{separator}{separator}+", ".", nsid)
+        sanitized_nsid = re.sub(f"\{separator}\{separator}+", f"{separator}", nsid)
     except (NameError, TypeError) as err:
         raise NsidSanitizationError(f'error sanitizing nsid {nsid}: {err}')
     else:
