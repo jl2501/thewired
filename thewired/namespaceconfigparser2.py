@@ -1,3 +1,4 @@
+import pprint
 import sys
 import typing
 from typing import Dict, Union, Callable, List
@@ -13,11 +14,55 @@ from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
 class NamespaceConfigParser2(object):
+    """
+    Description:
+        this is the new main parser for YAML config files that end up being parsed into a Namespace object
+        while the first iteration of this required subclassing and overriding methods to parse a new config file,
+        this wasn't really a great design b/c in the end the overall algorithm for parsing is basically always
+        a depth-first algorithm and really all the subclasses ever needed to do was actually look for "special"
+        keys and then take a special action when those keys are parsed.
+
+        This new parser is built around the pattern that revealed itself through using the first one, so it accommodates
+        the pattern listed above.
+    """
     def __init__(self, 
             namespace=None,
             node_factory:type=NamespaceNodeBase,
             callback_target_keys:Union[List[str],None]=None,
             input_mutator_callback:Union[Callable, None]=None):
+        """
+        Input:
+            namespace: a Namespace/Handle object where the parsed nodes will be added
+            node_factory: a callable that returns a Node type to be added to the Namespace
+                - inherit your Node class from NamespaceNodeBase or a subclass of it to make sure that the Namespace
+                  can handle the new type
+            callback_target_keys: a list of strings that are keys in the config that should trigger a call to the callback function
+            input_mutator_callback: will be called with the config dict whenever a target key is parsed
+
+        Notes:
+            input_mutator_callback needs to take 2 arguments are return a 2-tuple
+                Input:
+                    - dictConfig : the dictConfig that is being parsed
+                    - key : the key that triggered the callback
+
+                    the dictConfig that is passed in _includes_ the target key
+                    the return values are the same values: dictConfig and key
+                    
+                    whatever is passed back from this callable is then parsed normally
+
+                    this means the input_mutator itself does _not_ alter the namespace, but instead can alter the configuration _before_ it is
+                    turned into NamespaceNodes inside the Namespace
+
+                    however, b/c the parser supports specifiying new classes, the idea is that by mutating the dictConfig, we can effectively
+                    instruct the parser to create nodes of any type, and by having access to the containing dictConfig, we can arbitrarily mutate it
+                    and thus arbitrarily change the resulting namespace that ends up being created
+                Output:
+                    dictConfig: the new resulting dictConfig that will continue to be parsed
+                    key: the current key that the parser will continue parsing the dictConfig from
+
+        TODO: contextual target keys. ATM the key is just examined to see if it matches, but there is no concept of specifiying things like
+            "this is a target key, but only when it is nested inside of another specific target key"
+        """
 
         self.default_node_factory=node_factory
 
@@ -59,7 +104,11 @@ class NamespaceConfigParser2(object):
         for key in dictConfig.copy().keys():
 
             if key in self._input_mutator_targets:
+                log.debug(f"calling input mutator: {key=}")
                 dictConfig, key = self._input_mutator(dictConfig, key)
+                pretty_dictConfig = pprint.pformat(dictConfig, width=10)
+                log.debug(f"input mutator returned: {key=}")
+                log.debug(f"input mutator returned: dictConfig={pretty_dictConfig}")
 
             #- NB: meta keys can not be top level keys with this current pattern
             if key not in self.meta_keys:
@@ -98,6 +147,7 @@ class NamespaceConfigParser2(object):
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory'))
 
+        default_factory = default_factory if default_factory else self.default_node_factory
         try:
             keys = dictConfig.keys()
         except AttributeError:
@@ -105,12 +155,11 @@ class NamespaceConfigParser2(object):
             log.debug("No factory: not a dict")
             return None
 
-        node_factory_function = self._parse_meta_factory_function(dictConfig, self.default_node_factory)
+        node_factory_function = self._parse_meta_factory_function(dictConfig, default_factory)
         init_params = self._parse_meta_factory_function_params(dictConfig)
 
         log.debug(f"returning custom {node_factory_function=} {init_params=}")
         return partial(node_factory_function, **init_params)
-
 
 
 
@@ -160,10 +209,12 @@ class NamespaceConfigParser2(object):
             log.debug(f"{dyty_bases=}")
             log.debug(f"{dyty_dict=}")
             dyty = type(dyty_name, dyty_bases, dyty_dict)
+            log.debug(f"returning dynamic type factory function: {dyty=}")
             return dyty
 
         except KeyError:
-           return None
+            log.debug("returning None: no dynamic type spec found")
+            return None
 
 
 
@@ -233,17 +284,20 @@ class NamespaceConfigParser2(object):
             TODO: unify semanitcs btw this and dynamci parser. return None instead of passing default
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_static'))
+
         #- pick back up here in case of KeyError
         nf_module = None    #- "node factory module" - the python module that has the node factory function defined
         try:
             nf_module_name = '.'.join(dictConfig["__class__"].split('.')[0:-1])
             nf_symbol_name = dictConfig["__class__"].split('.')[-1]
             nf_module = import_module(nf_module_name)
+            log.debug(f"{nf_module_name=} | {nf_symbol_name=} | {nf_module=}")
 
         except KeyError:
             #- no "__class__" key
             #- leave node_factory set to the default
             log.debug(f"key error when trying to access '__class__': keys: {list(dictConfig.keys())}")
+            log.debug(f"returning {default_factory_function=}")
             return default_factory_function
 
         except ValueError:
@@ -269,8 +323,10 @@ class NamespaceConfigParser2(object):
                     raise ValueError(f"parsed node factory {dictConfig['__class__']} is not callable!")
 
             else:
+                log.debug(f"returning {default_factory_function=}")
                 return default_factory_function
 
+        log.debug(f"returning parsed {node_factory=}")
         return node_factory
 
 
@@ -296,19 +352,22 @@ class NamespaceConfigParser2(object):
             Only works with dict /kwarg params ATM
             TODO: make this work with serialized positional args as well
         """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_bare_params'))
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_params'))
         init_params = dict()
 
         if not dictConfig:
+            log.debug("no dictConfig: returning empty dict")
             return dict()
         try:
             init_params_config = dictConfig["__init__"]
         except KeyError:
             #- no __init__ key, leave it as an empty dict
+            log.debug("no __init__ key. returning empty dict")
             return dict()
 
         else:
             #- there is an "__init__" subkey for this node factory parameter
+            log.debug("found __init__ subkey")
             try:
                 init_param_names = init_params_config.keys()
             except AttributeError:
@@ -321,6 +380,8 @@ class NamespaceConfigParser2(object):
                 #- to be passed as parameters into the node factory bare function to complete
                 #- the node factory function partial
                 for init_param_name in init_param_names:
+                    log.debug(f"parsing {init_param_name=}")
+
                     try:
                         init_params_config[init_param_name].keys()
                     except AttributeError:
@@ -330,11 +391,11 @@ class NamespaceConfigParser2(object):
                         if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
                             log.debug(f"found recursive parameter definition: {init_param_name=}")
                             log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
-
-                            #init_params[init_param_name] = self._create_node_factory_param_object(dictConfig["__init__"][init_param_name])
                             init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
-
                             log.debug(f"created new object: {init_params[init_param_name]=}")
+                        else:
+                            init_params[init_param_name] = dictConfig["__init__"][init_param_name]
+
         return init_params
 
 

@@ -13,7 +13,7 @@ class DelegateNode(NamespaceNodeBase):
 
     def __getattr__(self, attr):
         log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.__getattr__"))
-        log.debug(f"__getattr__: {attr=}")
+        #log.debug(f"__getattr__: {attr=}")
         return getattr(self._delegate, attr)
 
     def __str__(self):

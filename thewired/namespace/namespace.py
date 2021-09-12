@@ -102,7 +102,7 @@ class Namespace(SimpleNamespace):
             except AttributeError:
                 raise NamespaceLookupError(f"{current_node} has no attribute named '{nsid_segment}'")
             n += 1
-        log.debug(f"found {_nsid_=} == {current_node.nsid=}")
+        #log.debug(f"found {_nsid_=} == {current_node.nsid=}")
         return current_node
 
 
