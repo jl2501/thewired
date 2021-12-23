@@ -38,7 +38,7 @@ class NamespaceNodeBase(SimpleNamespace):
         * NamespaceConfigParser
     """
     #def __init__(self, namespace:Namespace, nsid:NSID, *args, **kwargs): #circular imports needed for type annotations
-    def __init__(self, *args, nsid, namespace,  **kwargs):
+    def __init__(self, nsid, namespace,  *args, **kwargs):
         """
         Input:
             nsid: namespace id of this node
