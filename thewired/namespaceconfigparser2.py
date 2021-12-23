@@ -92,7 +92,7 @@ class NamespaceConfigParser2(object):
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.parse'))
 
-        log.debug(f"enter: {prefix=} {dictConfig=}")
+        log.debug(f"enter: {self.ns=} {prefix=} {dictConfig=}")
         ns = self.ns
 
         try:
@@ -102,13 +102,14 @@ class NamespaceConfigParser2(object):
 
         #- create namespace as dictConfig describes
         for key in dictConfig.copy().keys():
-
             if key in self._input_mutator_targets:
                 log.debug(f"calling input mutator: {key=}")
+                log.debug(f"namespace before input mutator run: {ns=}")
                 dictConfig, key = self._input_mutator(dictConfig, key)
                 pretty_dictConfig = pprint.pformat(dictConfig, width=10)
                 log.debug(f"input mutator returned: {key=}")
                 log.debug(f"input mutator returned: dictConfig={pretty_dictConfig}")
+                log.debug(f"namespace after input mutator run: {ns=}")
 
             #- NB: meta keys can not be top level keys with this current pattern
             if key not in self.meta_keys:
@@ -117,7 +118,7 @@ class NamespaceConfigParser2(object):
 
                 if node_factory:
                     new_node_nsid = nsid.make_child_nsid(prefix, key)
-                    log.debug(f"{new_node_nsid=}")
+                    log.debug(f"adding {new_node_nsid=} to {ns=}")
                     new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
                     if isinstance(dictConfig[key], Mapping):
@@ -125,6 +126,7 @@ class NamespaceConfigParser2(object):
                     else:
                         log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
                         setattr(new_node, key, dictConfig[key])
+                log.debug(f"{ns=}")
 
         return ns
 
@@ -145,8 +147,9 @@ class NamespaceConfigParser2(object):
         Output:
             a partial made from the parsed factory function with the parsed factory function params
         """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory'))
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_factory'))
 
+        log.debug(f"Entering: {dictConfig=}")
         default_factory = default_factory if default_factory else self.default_node_factory
         try:
             keys = dictConfig.keys()
@@ -158,7 +161,7 @@ class NamespaceConfigParser2(object):
         node_factory_function = self._parse_meta_factory_function(dictConfig, default_factory)
         init_params = self._parse_meta_factory_function_params(dictConfig)
 
-        log.debug(f"returning custom {node_factory_function=} {init_params=}")
+        log.debug(f"Exiting: {node_factory_function=} {init_params=}")
         return partial(node_factory_function, **init_params)
 
 
@@ -180,8 +183,9 @@ class NamespaceConfigParser2(object):
                 * _create_node_factory
                 * _create_node_factory_param_object
         """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_bare_function'))
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function'))
 
+        log.debug(f"Entering: {dictConfig=}")
         factory_func = self._parse_meta_factory_function_dynamic(dictConfig)
         if not factory_func:
             factory_func = self._parse_meta_factory_function_static(dictConfig, default_factory_function)
@@ -190,6 +194,7 @@ class NamespaceConfigParser2(object):
         # if not factory_func:
         # factory_func = default_factory_func
 
+        log.debug(f"Exiting: {factory_func=}")
         return factory_func
 
 
@@ -233,6 +238,7 @@ class NamespaceConfigParser2(object):
             that can capture the similar logic for importing the module and getting the symbol as an object
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_dynamic_bases'))
+        log.debug("Entering")
 
         bases = list()  # will be returned value
 
@@ -266,6 +272,7 @@ class NamespaceConfigParser2(object):
                     else:
                         bases.append(cls)
 
+        log.debug(f"Exiting: {bases=}")
         return tuple(bases)
 
 
@@ -284,6 +291,7 @@ class NamespaceConfigParser2(object):
             TODO: unify semanitcs btw this and dynamci parser. return None instead of passing default
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_static'))
+        log.debug(f"Entering: {dictConfig=}")
 
         #- pick back up here in case of KeyError
         nf_module = None    #- "node factory module" - the python module that has the node factory function defined
@@ -323,10 +331,10 @@ class NamespaceConfigParser2(object):
                     raise ValueError(f"parsed node factory {dictConfig['__class__']} is not callable!")
 
             else:
-                log.debug(f"returning {default_factory_function=}")
+                log.debug(f"Exiting: {default_factory_function=}")
                 return default_factory_function
 
-        log.debug(f"returning parsed {node_factory=}")
+        log.debug(f"Exiting {node_factory=}")
         return node_factory
 
 
@@ -353,6 +361,8 @@ class NamespaceConfigParser2(object):
             TODO: make this work with serialized positional args as well
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_params'))
+        log.debug(f"Entering: {dictConfig=}")
+
         init_params = dict()
 
         if not dictConfig:
@@ -381,13 +391,9 @@ class NamespaceConfigParser2(object):
                 #- the node factory function partial
                 for init_param_name in init_param_names:
                     log.debug(f"parsing {init_param_name=}")
-
-                    try:
-                        init_params_config[init_param_name].keys()
-                    except AttributeError:
-                        init_params[init_param_name] = dictConfig["__init__"][init_param_name]
-
-                    else:
+                    log.debug(f"init_params_config[{init_param_name}]: {init_params_config[init_param_name]}")
+                    if isinstance(init_params_config[init_param_name], Mapping):
+                        log.debug(f"init_params_config[{init_param_name=}] is a dict")
                         if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
                             log.debug(f"found recursive parameter definition: {init_param_name=}")
                             log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
@@ -395,7 +401,12 @@ class NamespaceConfigParser2(object):
                             log.debug(f"created new object: {init_params[init_param_name]=}")
                         else:
                             init_params[init_param_name] = dictConfig["__init__"][init_param_name]
+                    else:
+                        log.debug(f"not a dict: directly assigning init_params[{init_param_name}]")
+                        init_params[init_param_name] = init_params_config[init_param_name]
+                        log.debug(f"assigned: init_params_config[{init_param_name}]: {init_params_config[init_param_name]}")
 
+        log.debug(f"Exiting: {init_params=}")
         return init_params
 
 
@@ -410,18 +421,21 @@ class NamespaceConfigParser2(object):
         Output:
             a parameter object instantiated as specified in the config via the meta keys
         """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_param_objects'))
-        log.debug(f"create_node_factory_param_object: {dictConfig=}")
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_param_object'))
+        log.debug(f"Entering: {dictConfig=}")
 
         if not dictConfig:
+            log.debug("Exiting: None")
             return None
         try:
             keys = dictConfig.keys()
         except AttributeError:
             #- no .keys(), dictConfig is no longer a mapping type
+            log.debug("Exiting: None")
             return None
 
         #- parse out the function from __class__
+        log.debug("parsing our the function from __class__")
         factory_function = self._parse_meta_factory_function(dictConfig)
 
         #- parse the parameters and instantiate the objects
@@ -437,9 +451,11 @@ class NamespaceConfigParser2(object):
 
                 except AttributeError:
                     #- this init param is not a mapping type
+                    log.debug(f"not a mapping type: {dictConfig['__init__'][init_param_name]=}")
                     init_params = dictConfig['__init__'][init_param_name]
 
         except KeyError:
             #- no '__init__' key
+            log.debug("Exiting: {}")
             return dict()
 
