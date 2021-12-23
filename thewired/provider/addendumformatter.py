@@ -1,8 +1,7 @@
 from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
-import collections
-import itertools
+import collections, importlib, itertools
 from thewired.exceptions import NamespaceLookupError
 from .providerabc import Provider
 from thewired.util import is_nsid_ref
@@ -40,16 +39,21 @@ class AddendumFormatter(Provider):
                 return self.formatter(eval("self.implementor{}".format(addendum)))
         """
         log = LoggerAdapter(logger, {'name_ext' : 'AddendumFormatter.__init__'})
+        log.debug("Entering")
         self._pre_exec = pre_exec
         self._post_exec = post_exec
         self.implementor_ns = implementor_namespace
         self.implementor_state_ns = implementor_state_namespace
 
+        self.formatter = lambda x: x
+
         if isinstance(implementor, str):
             #- treat as NSID
+            log.debug(f"implementor is a string {implementor=}")
             self.implementor_nsid = implementor
             self.implementor = None
         else:
+            log.debug(f"implementor is a non-string object {implementor=}")
             self.implmentor_nsid = None
             self.implementor = implementor
 
@@ -62,16 +66,31 @@ class AddendumFormatter(Provider):
 
         self.nsroot = nsroot
         self.key = implementor_key
+
         if callable(formatter):
             self.formatter = formatter
         else:
-            self.formatter = lambda x: x
+            try:
+                module_name = '.'.join(formatter.split('.')[0:-1][0])
+                formatter_name = formatter.split('.')[-1]
 
-            if formatter is not None:
-                log.warning("Formatter not callable: {}".format(formatter))
+            except (AttributeError, TypeError) as e:
+                log.warning(f"Couldn't create formatter from {formatter}")
                 msg = " will use direct return value of implementor {}".format(\
                         self.implementor_nsid)
                 log.warning(msg)
+
+            except IndexError as e:
+                log.warning(f"defaulting to formatter {formatter} being a builtin...")
+                module_name = "builtins"
+                formatter_name = formatter
+
+            module = importlib.import_module(module_name)
+            try:
+                self.formatter = getattr(module, formatter_name)
+            except AttributeError as e:
+                log.warning("failed to find {formatter} in 'builtins'. Using default formatter!")
+
 
 
     def get_addendum(self, nsid=None, implementor=None, *args, **kwargs):
@@ -105,7 +124,7 @@ class AddendumFormatter(Provider):
         for addendum in self._addendums:
             if is_nsid_ref(addendum):
                 log.debug("Dereferencing addendum: {}".format(addendum))
-                addendum = self.nsroot._lookup(addendum)
+                addendum = self.nsroot.get(addendum)
             
             if isinstance(addendum, collections.Mapping):
                 log.debug("Found mapping addendum")
@@ -135,7 +154,7 @@ class AddendumFormatter(Provider):
         """
         if self.key:
             if is_nsid_ref(self.key):
-                key_func = self.nsroot._lookup(self.key)
+                key_func = self.nsroot.get(self.key)
                 return key_func
         else:
             return None
@@ -174,7 +193,7 @@ class AddendumFormatter(Provider):
         #- find which implementor object(s) to use
         if self.implementor is None:
             #- use NSID if there is no direct object
-            implementor_root_node = self.implementor_ns._lookup(self.implementor_nsid)
+            implementor_root_node = self.implementor_ns.get(self.implementor_nsid)
             imp_iter = implementor_root_node._list_leaves(nsids=True)
         else:
             implementor = self.implementor
@@ -224,7 +243,7 @@ class AddendumFormatter(Provider):
             if self.implementor_state_ns:
                 try:
                     log.debug("checking implementor flipswitch via nsid: {}".format(nsid))
-                    if not self.implementor_state_ns._lookup(nsid):
+                    if not self.implementor_state_ns.get(nsid):
                         #- skip til next implementor
                         log.debug("Skipping inactive implementor: {}".format(nsid))
                         continue
