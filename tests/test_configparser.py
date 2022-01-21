@@ -450,6 +450,57 @@ def test_input_mutator_4(caplog):
     assert(ns.root.topkey.raw.get('d', None).get('dd', None) == "they are so NOT blue, that we CALL THEM VIOLETS")
 
 
+
+def test_input_mutator_5(caplog):
+    """ test input mutator overwrite current node """
+
+    #caplog.set_level(logging.DEBUG)
+
+    def input_mutator(dictConfig, key):
+        print("input_mutator called!")
+        new_key_name = None
+
+        mutated_config = {
+            new_key_name: {
+                "__class__": "thewired.DelegateNode",
+                "__init__": {
+                    "delegate" : {
+                        "__class__": "builtins.dict",
+                        "__init__" : dictConfig[key]
+                    }
+                }
+            }
+        }
+        return mutated_config, new_key_name
+
+
+    test_dict = {
+        "topkey" : {
+            "mutate_me" : {
+                "a": "roses are red",
+                "b": "violets are VIOLET",
+                "c": "they aren't blue. they're VIOLET",
+                "d": {
+                    "dd": "they are so NOT blue, that we CALL THEM VIOLETS"
+                }
+            }
+        }
+    }
+
+    target_keys = ['mutate_me']
+    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
+
+    ns = parser.parse(test_dict)
+
+    assert(isinstance(ns.root.topkey, thewired.DelegateNode))
+    assert(isinstance(ns.root.topkey._delegate, dict))
+    assert(ns.root.topkey.get('a', None) == 'roses are red')
+    assert(ns.root.topkey.get('b', None) == 'violets are VIOLET')
+    assert(ns.root.topkey.get('c', None) == "they aren't blue. they're VIOLET")
+    assert(isinstance(ns.root.topkey.get('d', None), dict))
+    assert(ns.root.topkey.get('d', None).get('dd', None) == "they are so NOT blue, that we CALL THEM VIOLETS")
+
+
 def test_parse_when_namespace_is_a_handle():
     test_dict = {
         "all" : {
