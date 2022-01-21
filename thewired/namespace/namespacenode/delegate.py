@@ -1,7 +1,7 @@
 from .base import NamespaceNodeBase
-from logging import getLogger
+from logging import getLogger, LoggerAdapter
 
-log = getLogger(__name__)
+logger = getLogger(__name__)
 
 class DelegateNode(NamespaceNodeBase):
     """
@@ -12,5 +12,15 @@ class DelegateNode(NamespaceNodeBase):
         self._delegate = delegate
 
     def __getattr__(self, attr):
-        log.error(f"__getattr__: {attr=}")
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.__getattr__"))
+        #log.debug(f"__getattr__: {attr=}")
         return getattr(self._delegate, attr)
+
+    def __str__(self):
+        return str(self._delegate)
+
+    def __repr__(self):
+        return repr(self._delegate)
+
+    def __dir__(self):
+        return dir(self._delegate)

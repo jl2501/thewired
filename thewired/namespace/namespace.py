@@ -90,7 +90,7 @@ class Namespace(SimpleNamespace):
 
         n = 0
         while current_node.nsid != _nsid_:
-            log.debug(f"target {_nsid_=} != {current_node.nsid=}")
+            #log.debug(f"target {_nsid_=} != {current_node.nsid=}")
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
@@ -99,10 +99,11 @@ class Namespace(SimpleNamespace):
                 current_node = getattr(current_node, nsid_segment)
                 if not isinstance(current_node, NamespaceNodeBase):
                     warn("Rogue node type detected in the namespace. Will most likely cause errors.")
-            except AttributeError:
-                raise NamespaceLookupError(f"{current_node} has no attribute named '{nsid_segment}'")
+            except AttributeError as e:
+                raise NamespaceLookupError(f"{current_node} has no attribute named '{nsid_segment}'") from e
             n += 1
-        log.debug(f"found {_nsid_=} == {current_node.nsid=}")
+
+        log.debug(f"Exiting: {current_node=}")
         return current_node
 
 
@@ -119,6 +120,7 @@ class Namespace(SimpleNamespace):
                 **kwargs: passed into the node_factory as kwargs
         """
         log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add"))
+        log.debug(f"Entering: {nsid=} | {node_factory=}")
         if find_common_prefix(str(self.root.nsid), nsid) is None:
             err_msg = f'child nsid ({nsid}) must share a common prefix with Namespace root node nsid'
             err_msg += f'({str(self.root.nsid)})'
@@ -147,21 +149,25 @@ class Namespace(SimpleNamespace):
         for i,child_attribute_name in enumerate(nsid_segments):
             new_node_nsid = make_child_nsid(str(deepest_ancestor.nsid), child_attribute_name)
             #- use the node factory on the last node only
+            log.debug(f"creating node: {self=} | {new_node_nsid=}")
             if i == len(nsid_segments) - 1:
-                log.debug(f"creating node: {node_factory=})")
-
                 try:
+                    log.debug(f"creating node w/ non-default factory: {node_factory=}")
                     new_node = node_factory(*args, nsid=new_node_nsid, namespace=self, **kwargs)
                 except TypeError as e:
                     raise TypeError(f"node_factory failed to create node: {str(e)}") from e
 
             else:
+                log.debug(f"creating node with default factory")
                 new_node = self.default_node_factory(nsid=new_node_nsid, namespace=self)
 
             created_nodes.append(new_node)
+            log.debug(f"adding new node to the namespace: {deepest_ancestor=} | {child_attribute_name=} | {new_node=}")
             setattr(deepest_ancestor, child_attribute_name, new_node)
             deepest_ancestor = getattr(deepest_ancestor, child_attribute_name)
+            log.debug(f"got next ancestor: {deepest_ancestor=}")
 
+        log.debug(f"Exiting. {created_nodes=}")
         return created_nodes
 
 
@@ -185,21 +191,26 @@ class Namespace(SimpleNamespace):
                     or
                     - if it didn't look like it but somehow it did: NamespaceInternalError
         """
+        log = LoggerAdapter(logger, dict(name_ext="namespace.add_exactly_one"))
+        log.debug(f"Entering: {nsid=} {node_factory=}")
         nsid_segments = list_nsid_segments(nsid, skip_root=True)
         if len(nsid_segments) > 1:
             try:
                 #- if the parent exists, this will add only one
+                log.debug(f"checking if parent exists: {get_parent_nsid(nsid)}")
                 self.get(get_parent_nsid(nsid))
-            except NamespaceLookupError:
+                log.debug(f"parent exists for {nsid=}")
+            except NamespaceLookupError as e:
                 err_msg = f"add_exactly_one: error: input \"{nsid}\" would create more" +\
-                          f" than one new node. ({len(nsid_segments)} > 1)"
-                raise ValueError(err_msg)
+                          f" than one new node. ({len(nsid_segments)} > 1) {self.root=}"
+                raise ValueError(err_msg) from e
 
         new_nodes = self.add(nsid, node_factory, *args, **kwargs)
 
         if len(new_nodes) > 1:
             raise NamespaceInternalError(f"created more than one new node! ({new_nodes})")
 
+        log.debug(f"Exiting. {new_nodes=}")
         return new_nodes[0]
 
 

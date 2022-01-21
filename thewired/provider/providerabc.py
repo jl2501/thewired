@@ -1,6 +1,7 @@
 '''
-Provider objects are the objects that actually implement the methods that are logically
-named in the Treespace Node objects. They are organized into a Namespace object for ease
+Provider Objects call the underlying implementor objects in a specific way to provide for specific use cases of an implementor object.
+
+They are organized into a Namespace object for ease
 of remembering where they are and having a shorter way to look them up, rathen than put
 them directly in native Python nested dictionaries.
 '''
@@ -45,7 +46,7 @@ class Provider(abc.ABC):
         '''
         if self.pre_exec_hook:
             if callable(self.pre_exec_hook):
-                self.pre_exec_hook()
+                self.pre_exec_hook(*args, **kwargs)
             else:
                 warnings.warn("Skipping uncallable pre_exec_hook")
 
@@ -65,7 +66,7 @@ class Provider(abc.ABC):
         '''
         if self.post_exec_hook:
             if callable(self.post_exec_hook):
-                self.post_exec_hook()
+                self.post_exec_hook(*args, **kwargs)
             else:
                 warnings.warn("Skipping uncallable post_exec_hook")
 
@@ -97,7 +98,7 @@ def get_provider_classes():
         entry point to building a list of all the known provider class names
 
     Output:
-        a list of available provider classes
+        a list of currently available provider classes
     '''
     provider_class_list = Provider.__subclasses__()
     return provider_class_list
