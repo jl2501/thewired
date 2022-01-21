@@ -10,6 +10,8 @@ from .namespace import Namespace
 from .namespace import NamespaceNodeBase
 from .namespace import nsid
 
+from thewired.exceptions import NamespaceError
+
 from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
@@ -102,30 +104,49 @@ class NamespaceConfigParser2(object):
 
         #- create namespace as dictConfig describes
         for key in dictConfig.copy().keys():
+            current_key = key
+
             if key in self._input_mutator_targets:
                 log.debug(f"calling input mutator: {key=}")
                 log.debug(f"namespace before input mutator run: {ns=}")
-                dictConfig, key = self._input_mutator(dictConfig, key)
+                dictConfig, current_key = self._input_mutator(dictConfig, key)
                 pretty_dictConfig = pprint.pformat(dictConfig, width=10)
                 log.debug(f"input mutator returned: {key=}")
                 log.debug(f"input mutator returned: dictConfig={pretty_dictConfig}")
                 log.debug(f"namespace after input mutator run: {ns=}")
 
             #- NB: meta keys can not be top level keys with this current pattern
-            if key not in self.meta_keys:
-                log.debug(f"parsing {key=}")
-                node_factory = self._create_factory(dictConfig[key], self.default_node_factory)
+            if current_key not in self.meta_keys:
+                log.debug(f"parsing {current_key=}")
+                node_factory = self._create_factory(dictConfig[current_key], self.default_node_factory)
 
                 if node_factory:
-                    new_node_nsid = nsid.make_child_nsid(prefix, key)
+                    if current_key is None:
+                        #add new node in place of / overwriting previous node
+                        log.debug("special case node path detected: overwrite previous node, place new one at {prefix=}")
+                        try:
+                            ns.remove(prefix)
+                        except NamespaceError as e:
+                            log.debug("Failed to remove {prefix=}, which should actually exist at this point..")
+                            pass
+                        new_node_nsid = prefix
+                    else:
+                        #add new node in its own space
+                        log.debug(f"making child nsid: {prefix=} {current_key=}")
+                        new_node_nsid = nsid.make_child_nsid(prefix, current_key)
+
                     log.debug(f"adding {new_node_nsid=} to {ns=}")
                     new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
-                    if isinstance(dictConfig[key], Mapping):
-                       self.parse(dictConfig=dictConfig[key], prefix=new_node_nsid)
+                    if isinstance(dictConfig[current_key], Mapping):
+                       self.parse(dictConfig=dictConfig[current_key], prefix=new_node_nsid)
                     else:
-                        log.debug(f"setting {new_node.nsid}.{key} to {dictConfig[key]}")
-                        setattr(new_node, key, dictConfig[key])
+                        log.debug(f"setting {new_node.nsid}.{current_key} to {dictConfig[current_key]}")
+                        if current_key is None:
+                            raise ValueError("Can't use 'None' as an attribute name for a node!")
+                        else:
+                            setattr(new_node, current_key, dictConfig[current_key])
+
                 log.debug(f"{ns=}")
 
         return ns
