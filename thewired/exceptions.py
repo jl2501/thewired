@@ -8,19 +8,19 @@ class CollectiveEvalDelegateObjectError(AttributeError):
     """
     pass
 
-class NamespaceLookupError(AttributeError):
+class NamespaceError(Exception):
     pass
 
-class NamespaceCollisionError(Exception):
+class NamespaceLookupError(NamespaceError, AttributeError):
     pass
 
-class NamespaceConfigParsingError(SyntaxError):
+class NamespaceCollisionError(NamespaceError):
     pass
 
-class InternalError(RuntimeError):
+class NamespaceConfigParsingError(NamespaceError, SyntaxError):
     pass
 
-class NamespaceInternalError(InternalError):
+class NamespaceInternalError(NamespaceError, RuntimeError):
     pass
 
 class ProviderError(RuntimeError):
