@@ -1,10 +1,12 @@
 from logging import getLogger, LoggerAdapter
 logger = getLogger(__name__)
 
-import collections, importlib, itertools
+import importlib, itertools
+from collections.abc import Mapping, Iterable, Sequence
+
 from thewired.exceptions import NamespaceLookupError
-from .providerabc import Provider
 from thewired.util import is_nsid_ref
+from .providerabc import Provider
 from .parametizedcall import ParametizedCall
 
 class AddendumFormatter(Provider):
@@ -61,7 +63,7 @@ class AddendumFormatter(Provider):
         self._addendums = list()
         if isinstance(addendum, str):
             self._addendums.append(addendum)
-        elif isinstance(addendum, collections.Sequence):
+        elif isinstance(addendum, Sequence):
             self._addendums.extend(addendum)
 
         self.nsroot = nsroot
@@ -126,7 +128,7 @@ class AddendumFormatter(Provider):
                 log.debug("Dereferencing addendum: {}".format(addendum))
                 addendum = self.nsroot.get(addendum)
             
-            if isinstance(addendum, collections.Mapping):
+            if isinstance(addendum, Mapping):
                 log.debug("Found mapping addendum")
                 if ParametizedCall.is_param_call_map(addendum):
                     log.debug("Found Parametized Call addendum")
@@ -198,7 +200,7 @@ class AddendumFormatter(Provider):
         else:
             implementor = self.implementor
             #- make it an iterable
-            if not isinstance(implementor, collections.Iterable):
+            if not isinstance(implementor, Iterable):
                 try:
                     _iter = iter(implementor)
                     imp_iter = zip(itertools.repeat('_user_override_'), _iter)
