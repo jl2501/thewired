@@ -168,7 +168,10 @@ def make_child_nsid(parent_nsid, child, separator='.'):
             if parent_nsid == separator:    #is root?
                 return separator.join(['', child])
             else:
-                return separator.join([parent_nsid, child])
+                if child.startswith(separator):
+                    return ''.join([parent_nsid, child])
+                else:
+                    return separator.join([parent_nsid, child])
         else:
             raise InvalidNsidError(f'invalid child NSID "{child}"')
     else:
