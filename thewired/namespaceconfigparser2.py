@@ -139,13 +139,25 @@ class NamespaceConfigParser2(object):
                     new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
                     if isinstance(dictConfig[current_key], Mapping):
-                       self.parse(dictConfig=dictConfig[current_key], prefix=new_node_nsid)
+                        log.debug(f"recursing on remaining Mapping config: {current_key=}")
+                        self.parse(dictConfig=dictConfig[current_key], prefix=new_node_nsid)
+                else:
+                    log.debug(f"No node_factory returned by self._create_factory() {current_key=}.")
+                    log.debug("not recursing: no more Mappings to parse {current_key=}")
+                    if current_key is None:
+                        raise ValueError("Can't use 'None' as an attribute name for a node!")
                     else:
-                        log.debug(f"setting {new_node.nsid}.{current_key} to {dictConfig[current_key]}")
-                        if current_key is None:
-                            raise ValueError("Can't use 'None' as an attribute name for a node!")
+                        current_node = ns.get(prefix)
+                        log.debug(f"setting {current_node.nsid}.{current_key} to {dictConfig[current_key]}")
+                        if isinstance(dictConfig[current_key], str):
+                            if nsid.is_valid_nsid_link(dictConfig[current_key]):
+                                log.debug(f"found symbolic link to NSID: {current_key=}")
+                            elif nsid.is_valid_nsid_ref(dictConfig[current_key]): 
+                                log.debug(f"found NSID reference: {current_key=}")
+                                setattr(current_node, current_key, ns.get(dictConfig[current_key]))
                         else:
-                            setattr(new_node, current_key, dictConfig[current_key])
+                            setattr(current_node, current_key, dictConfig[current_key])
+
 
                 log.debug(f"{ns=}")
 
