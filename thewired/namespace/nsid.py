@@ -30,21 +30,6 @@ class NsidBase(object):
         self.nsid_separator = self.default_separator if separator is None else separator
 
 
-class NsidSymRef(NsidBase):
-    """
-    Description:
-        a symbolic link-like reference to an NSID.
-    """
-    #- backwards compat: how we determine if an arbitrary string is an NSID reference
-    nsid_symref_prefix = 'nsid://'
-
-    def __init__(self, nsid_ref_str: str):
-        super().__init__()
-        self.symref = ''
-        validate_nsid(nsid_ref_str, symrefs_ok=True)
-        self.symref = nsid_ref_str
-
-
 class Nsid(NsidBase):
     """
     Description:
@@ -54,6 +39,9 @@ class Nsid(NsidBase):
         NSIDs follow a hierarchy, much like a filesystem in an OS, and employ some similar
         concepts such as symbolic references ("symlinks" in FS-world)
     """
+
+    nsid_link_prefix = 'nsid://'
+    nsid_ref_prefix = 'nsid-ref://'
 
     def __init__(self, nsid, fully_qualified=False):
         """
@@ -106,7 +94,7 @@ def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.', f
 
         if nsid == separator:
             return nsid_root_ok
-        elif symrefs_ok and is_valid_symref_str(nsid, separator=separator):
+        elif symrefs_ok and is_valid_nsid_link(nsid, separator=separator):
             return True
         else:
             parts = get_nsid_parts(nsid)
@@ -132,12 +120,17 @@ def is_valid_nsid_str(nsid, nsid_root_ok=True, symrefs_ok=True, separator='.', f
     return valid_nsid
 
 
-def is_valid_symref_str(symref, separator='.'):
-    log = make_log_adapter(logger, None, 'is_valid_symref_str')
-    if symref.startswith(NsidSymRef.nsid_symref_prefix):
-        prefix,nsid = symref.split(Nsid.nsid_symref_prefix)
+def is_valid_nsid_link(symref, separator='.'):
+    log = make_log_adapter(logger, None, 'is_valid_nsid_link')
+    if symref.startswith(Nsid.nsid_link_prefix):
+        prefix,nsid = symref.split(Nsid.nsid_link_prefix)
         return is_valid_nsid_str(nsid, symrefs_ok=False, separator=separator)
 
+def is_valid_nsid_ref(ref, separator='.'):
+    log = make_log_adapter(logger, None, 'is_valid_nsid_ref')
+    if ref.startswith(Nsid.nsid_ref_prefix):
+        prefix,nsid = ref.split(Nsid.nsid_ref_prefix)
+        return is_valid_nsid_str(nsid, symrefs_ok=False, separator=separator)
 
 def sanitize_nsid(nsid, separator='.'):
     """
@@ -168,7 +161,10 @@ def make_child_nsid(parent_nsid, child, separator='.'):
             if parent_nsid == separator:    #is root?
                 return separator.join(['', child])
             else:
-                return separator.join([parent_nsid, child])
+                if child.startswith(separator):
+                    return ''.join([parent_nsid, child])
+                else:
+                    return separator.join([parent_nsid, child])
         else:
             raise InvalidNsidError(f'invalid child NSID "{child}"')
     else:

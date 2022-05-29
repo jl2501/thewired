@@ -117,7 +117,7 @@ class NamespaceConfigParser2(object):
 
             #- NB: meta keys can not be top level keys with this current pattern
             if current_key not in self.meta_keys:
-                log.debug(f"parsing {current_key=}")
+                log.debug(f"parsing non-meta-key: {current_key=}")
                 node_factory = self._create_factory(dictConfig[current_key], self.default_node_factory)
 
                 if node_factory:
@@ -139,13 +139,25 @@ class NamespaceConfigParser2(object):
                     new_node = ns.add_exactly_one(new_node_nsid, node_factory)
 
                     if isinstance(dictConfig[current_key], Mapping):
-                       self.parse(dictConfig=dictConfig[current_key], prefix=new_node_nsid)
+                        log.debug(f"recursing on remaining Mapping config: {current_key=}")
+                        self.parse(dictConfig=dictConfig[current_key], prefix=new_node_nsid)
+                else:
+                    log.debug(f"No node_factory returned by self._create_factory() {current_key=}.")
+                    log.debug("not recursing: no more Mappings to parse {current_key=}")
+                    if current_key is None:
+                        raise ValueError("Can't use 'None' as an attribute name for a node!")
                     else:
-                        log.debug(f"setting {new_node.nsid}.{current_key} to {dictConfig[current_key]}")
-                        if current_key is None:
-                            raise ValueError("Can't use 'None' as an attribute name for a node!")
+                        current_node = ns.get(prefix)
+                        log.debug(f"setting {current_node.nsid}.{current_key} to {dictConfig[current_key]}")
+                        if isinstance(dictConfig[current_key], str):
+                            if nsid.is_valid_nsid_link(dictConfig[current_key]):
+                                log.debug(f"found symbolic link to NSID: {current_key=}")
+                            elif nsid.is_valid_nsid_ref(dictConfig[current_key]): 
+                                log.debug(f"found NSID reference: {current_key=}")
+                                setattr(current_node, current_key, ns.get(dictConfig[current_key]))
                         else:
-                            setattr(new_node, current_key, dictConfig[current_key])
+                            setattr(current_node, current_key, dictConfig[current_key])
+
 
                 log.debug(f"{ns=}")
 
@@ -201,8 +213,7 @@ class NamespaceConfigParser2(object):
 
         Notes:
             called by:
-                * _create_node_factory
-                * _create_node_factory_param_object
+                * _create_factory
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function'))
 
@@ -222,11 +233,30 @@ class NamespaceConfigParser2(object):
 
 
     def _parse_meta_factory_function_dynamic(self, dictConfig: dict) -> Union[callable, None]:
+        """
+        expects to find a "__type__" key that maps to a dictionary value with keys for 'name', 'bases', 'dict'
+        """
         #- dyty == "dynamic type"
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_dynamic'))
         try:
             dyty_name = dictConfig["__type__"]["name"]
             dyty_bases = dictConfig["__type__"]["bases"]
+
+            #- for callable nodes, this dict here must be parsed
+            #- and NSID references dereferenced
+            #- symbolic NSID links require the attribute to become a dynamic
+            #- property that, at dereftime, dynamically gets the value from the
+            #- namespace, asking for the node with the NSID-link name, and using its value
+            #- where the value is gotten from:
+            #- ???
+            #---  calling the node?
+            #----  then every ndoe must be callable
+            #----  can also have some kind of default value system other than calling... `.value?`?
+            #----  What happens in the recursive part of the static parser?
+            #----  aren't I going to need to be somewhat recursive here?
+            #----  How would a nested type work where inside of this dynamically typed object,
+            #----   say there is an argument which is also dynamic? or static? doesn't look like
+            #----   we will ever get that parsed if we don't parse the dict first
             dyty_dict = dictConfig["__type__"]["dict"]
 
             dyty_bases = self._parse_meta_factory_function_dynamic_bases(dyty_bases)
@@ -292,6 +322,8 @@ class NamespaceConfigParser2(object):
 
                     else:
                         bases.append(cls)
+                else:
+                    log.debug(f"no such module name: {module_name} from symbol {basename}")
 
         log.debug(f"Exiting: {bases=}")
         return tuple(bases)
@@ -418,7 +450,10 @@ class NamespaceConfigParser2(object):
                         if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
                             log.debug(f"found recursive parameter definition: {init_param_name=}")
                             log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
+
+                            #- recusrsive call here
                             init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
+
                             log.debug(f"created new object: {init_params[init_param_name]=}")
                         else:
                             init_params[init_param_name] = dictConfig["__init__"][init_param_name]
@@ -429,54 +464,3 @@ class NamespaceConfigParser2(object):
 
         log.debug(f"Exiting: {init_params=}")
         return init_params
-
-
-
-    def _create_node_factory_param_object(self, dictConfig:dict) -> Union[object, None]:
-        """
-        Description:
-            instantiates objects defined inside of node factory init function parameters
-            these objects are needed in order to pass in as params to the node factory function
-        Input:
-            dictConfig: the config we are parsing
-        Output:
-            a parameter object instantiated as specified in the config via the meta keys
-        """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._create_node_factory_param_object'))
-        log.debug(f"Entering: {dictConfig=}")
-
-        if not dictConfig:
-            log.debug("Exiting: None")
-            return None
-        try:
-            keys = dictConfig.keys()
-        except AttributeError:
-            #- no .keys(), dictConfig is no longer a mapping type
-            log.debug("Exiting: None")
-            return None
-
-        #- parse out the function from __class__
-        log.debug("parsing our the function from __class__")
-        factory_function = self._parse_meta_factory_function(dictConfig)
-
-        #- parse the parameters and instantiate the objects
-        init_params = dict()
-        try:
-            init_param_names = dictConfig['__init__'].keys()
-            for init_param_name in init_param_names:
-                try:
-                    init_param_keys = dictConfig['__init__'][init_param_name].keys()
-                    #- this init param itself requires an init param
-                    #- TODO
-                    pass
-
-                except AttributeError:
-                    #- this init param is not a mapping type
-                    log.debug(f"not a mapping type: {dictConfig['__init__'][init_param_name]=}")
-                    init_params = dictConfig['__init__'][init_param_name]
-
-        except KeyError:
-            #- no '__init__' key
-            log.debug("Exiting: {}")
-            return dict()
-

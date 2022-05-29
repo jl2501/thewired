@@ -1,7 +1,7 @@
 import unittest
 
 import collections
-import logging
+import logging, warnings
 
 import thewired
 
@@ -278,43 +278,6 @@ def test_input_mutator_1():
     ns = parser.parse(test_dict)
     assert(ns.root.topkey.mutate_me.__class__.__name__ == 'MutatedTypeName')
 
-def test_input_mutator_2():
-    def callfunc(self):
-        s = "called callfunc!"
-        print(s)
-        return s
-
-
-    def input_mutator(dictConfig, key):
-        print("input_mutator called!")
-        mutated_config = dictConfig.copy()
-        mutated_config[key]['__type__']['name'] = 'MutatedTypeName'
-        mutated_config['mutated_node'] = mutated_config[key]
-        mutated_config.pop(key)
-        return mutated_config, 'mutated_node'
-
-    test_dict = {
-        "topkey" : {
-            "mutate_me" : {
-                "__type__" : {
-                    "name" : "SomeTypeName",
-                    "bases" : ["thewired.NamespaceNodeBase"],
-                    "dict" : {
-                        "__call__" : callfunc
-                    }
-                }
-            }
-        }
-    }
-
-
-    target_keys = ['mutate_me']
-    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
-    ns = parser.parse(test_dict)
-    assert(ns.root.topkey.mutated_node.__class__.__name__ == 'MutatedTypeName')
-    assert(str(ns.root.topkey.mutated_node.nsid) == '.topkey.mutated_node')
-
-
 def test_input_mutator_3():
     """ test dict builtin """
     def input_mutator(dictConfig, key):
@@ -534,3 +497,99 @@ def test_parse_when_namespace_is_a_handle():
 
     for nsid in get_nsid_ancestry('.all.work.no.meaning.will.leave.you.empty_inside'):
         assert isinstance(ns.get(nsid), NamespaceNodeBase)
+
+def test_parse_callable_node():
+    def callfunc(self):
+        s = "called callfunc!"
+        print(s)
+        return s
+
+
+    def input_mutator(dictConfig, key):
+        print("input_mutator called!")
+        mutated_config = dictConfig.copy()
+        mutated_config[key]['__type__']['name'] = 'MutatedTypeName'
+        mutated_config['mutated_node'] = mutated_config[key]
+        mutated_config.pop(key)
+        return mutated_config, 'mutated_node'
+
+    test_dict = {
+        "topkey" : {
+            "mutate_me" : {
+                "__type__" : {
+                    "name" : "SomeTypeName",
+                    "bases" : ["thewired.NamespaceNodeBase"],
+                    "dict" : {
+                        "__call__" : callfunc
+                    }
+                }
+            }
+        }
+    }
+
+
+    target_keys = ['mutate_me']
+    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
+    ns = parser.parse(test_dict)
+    assert(ns.root.topkey.mutated_node.__class__.__name__ == 'MutatedTypeName')
+    assert(str(ns.root.topkey.mutated_node.nsid) == '.topkey.mutated_node')
+    assert(callable(ns.root.topkey.mutated_node))
+    assert(ns.root.topkey.mutated_node() == 'called callfunc!')
+
+def test_parse_callable_node_recursive_param(caplog):
+    #caplog.set_level(logging.DEBUG)
+    log = logging.getLogger(f"{__name__}.test_parse_callable_node_recursive_param")
+
+    def callfunc(self):
+        s = "called callfunc!"
+        print(s)
+        return s
+
+
+    def input_mutator(dictConfig, key):
+        print("input_mutator called!")
+        mutated_config = dictConfig.copy()
+        mutated_config[key]['__type__']['name'] = 'MutatedTypeName'
+        mutated_config['mutated_node'] = mutated_config[key]
+        mutated_config.pop(key)
+        return mutated_config, 'mutated_node'
+
+    test_dict = {
+        "topkey" : {
+            "mutate_me" : {
+                "__type__" : {
+                    "name" : "SomeTypeName",
+                    "bases" : ["thewired.NamespaceNodeBase"],
+                    "dict" : {
+                        "__call__" : callfunc,
+                        "dynamic_argument" : {
+                            "__class__" : "thewired.DelegateNode",
+                            "__init__": {
+                                "delegate" : {
+                                    "__class__" :  "collections.defaultdict",
+                                    "__init__" : { "key1" : "value1" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    target_keys = ['mutate_me']
+    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
+    ns = parser.parse(test_dict)
+    assert(ns.root.topkey.mutated_node.__class__.__name__ == 'MutatedTypeName')
+    assert(str(ns.root.topkey.mutated_node.nsid) == '.topkey.mutated_node')
+    assert(callable(ns.root.topkey.mutated_node))
+    assert(ns.root.topkey.mutated_node() == 'called callfunc!')
+
+    warnings.warn(f"{type(ns.root.topkey.mutated_node.dynamic_argument)=}")
+    warnings.warn(f"{ns.root.topkey.mutated_node.dynamic_argument['__class__']=}")
+    ###!!! this proves that in a dynamic typed class parsing, the dictionary is never actually parsed at all
+
+
+    #assert(isinstance(ns.root.topkey.mutated_node.dynamic_argument, thewired.DelegateNode))
+    #assert(ns.root.topkey.mutated_node.dynamic_argument['key1'] == 'value1')

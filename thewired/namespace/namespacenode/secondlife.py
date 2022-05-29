@@ -13,7 +13,7 @@ Purpose:
 """
 
 from .base import NamespaceNodeBase
-from thewired.namespace.nsid import is_valid_symref_str
+from thewired.namespace.nsid import is_valid_nsid_link
 
 class SecondLifeNode(NamespaceNodeBase):
     def __init__(self, *args, nsid, namespace, secondlife=None, **kwargs):
@@ -40,7 +40,7 @@ class SecondLifeNode(NamespaceNodeBase):
         if callable(raw_attr_value):
             provider = raw_attr_value
             secondlife_value = provider()
-        elif is_valid_symref_str(raw_attr_value):
+        elif is_valid_nsid_link(raw_attr_value):
             print(f"VALID NSID DETECTED: {raw_attr_value}")
             pass
             #TODO: lookup NSID
