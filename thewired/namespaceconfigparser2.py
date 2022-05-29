@@ -117,7 +117,7 @@ class NamespaceConfigParser2(object):
 
             #- NB: meta keys can not be top level keys with this current pattern
             if current_key not in self.meta_keys:
-                log.debug(f"parsing {current_key=}")
+                log.debug(f"parsing non-meta-key: {current_key=}")
                 node_factory = self._create_factory(dictConfig[current_key], self.default_node_factory)
 
                 if node_factory:
