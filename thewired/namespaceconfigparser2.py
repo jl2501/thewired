@@ -213,8 +213,7 @@ class NamespaceConfigParser2(object):
 
         Notes:
             called by:
-                * _create_node_factory
-                * _create_node_factory_param_object
+                * _create_factory
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function'))
 
