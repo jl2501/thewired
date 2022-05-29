@@ -322,6 +322,8 @@ class NamespaceConfigParser2(object):
 
                     else:
                         bases.append(cls)
+                else:
+                    log.debug(f"no such module name: {module_name} from symbol {basename}")
 
         log.debug(f"Exiting: {bases=}")
         return tuple(bases)
