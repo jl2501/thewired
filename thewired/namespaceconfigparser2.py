@@ -450,7 +450,10 @@ class NamespaceConfigParser2(object):
                         if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
                             log.debug(f"found recursive parameter definition: {init_param_name=}")
                             log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
+
+                            #- recusrsive call here
                             init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
+
                             log.debug(f"created new object: {init_params[init_param_name]=}")
                         else:
                             init_params[init_param_name] = dictConfig["__init__"][init_param_name]
