@@ -233,11 +233,30 @@ class NamespaceConfigParser2(object):
 
 
     def _parse_meta_factory_function_dynamic(self, dictConfig: dict) -> Union[callable, None]:
+        """
+        expects to find a "__type__" key that maps to a dictionary value with keys for 'name', 'bases', 'dict'
+        """
         #- dyty == "dynamic type"
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}._parse_meta_factory_function_dynamic'))
         try:
             dyty_name = dictConfig["__type__"]["name"]
             dyty_bases = dictConfig["__type__"]["bases"]
+
+            #- for callable nodes, this dict here must be parsed
+            #- and NSID references dereferenced
+            #- symbolic NSID links require the attribute to become a dynamic
+            #- property that, at dereftime, dynamically gets the value from the
+            #- namespace, asking for the node with the NSID-link name, and using its value
+            #- where the value is gotten from:
+            #- ???
+            #---  calling the node?
+            #----  then every ndoe must be callable
+            #----  can also have some kind of default value system other than calling... `.value?`?
+            #----  What happens in the recursive part of the static parser?
+            #----  aren't I going to need to be somewhat recursive here?
+            #----  How would a nested type work where inside of this dynamically typed object,
+            #----   say there is an argument which is also dynamic? or static? doesn't look like
+            #----   we will ever get that parsed if we don't parse the dict first
             dyty_dict = dictConfig["__type__"]["dict"]
 
             dyty_bases = self._parse_meta_factory_function_dynamic_bases(dyty_bases)
