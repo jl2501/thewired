@@ -215,6 +215,11 @@ def find_common_prefix(nsid1, nsid2, separator='.'):
         return separator.join(nsid1_parts[0:i])
 
 
+def strip_schema(nsid):
+    _nsid = nsid.split( Nsid.nsid_link_prefix )[1:]
+    _nsid = nsid.split( Nsid.nsid_ref_prefix )[1:]
+    return _nsid
+
 def strip_prefix(prefix, nsid, separator='.'):
     stripped = list()
     prefix_len = len(prefix.split(separator))
@@ -264,3 +269,9 @@ def nsid_basename(nsid, separator='.'):
     if nsid == separator:
         return nsid
     return str(nsid).split(separator)[-1]
+
+def get_nsid_from_ref(nsidref):
+    return nsidlref.split(Nsid.nsid_ref_prefix)[1]
+
+def get_nsid_from_link(nsidlink):
+    return nsidlink.split(Nsid.nsid_link_prefix)[1]

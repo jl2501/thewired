@@ -17,7 +17,7 @@ from thewired.loginfo import make_log_adapter
 from .namespacenode import NamespaceNodeBase
 from thewired.namespace.nsid import Nsid, list_nsid_segments, get_parent_nsid, validate_nsid, get_nsid_ancestry
 from thewired.namespace.nsid import strip_common_prefix, find_common_prefix, make_child_nsid
-from thewired.namespace.nsid import nsid_basename
+from thewired.namespace.nsid import nsid_basename, get_nsid_from_ref, is_valid_nsid_ref
 from thewired.exceptions import NamespaceLookupError, NamespaceCollisionError, InvalidNsidError
 from thewired.exceptions import NamespaceInternalError
 
@@ -83,6 +83,11 @@ class Namespace(SimpleNamespace):
             return a node object specified by NSID
         """
         log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get"))
+        if is_valid_nsid_ref(nsid):
+            log.debug(f'dreferencing NSID ref: {nsid=}')
+            nsid = get_nsid_from_ref(str(nsid))
+        else:
+            log.debug(f'no nsid-ref found')
         self._validate_namespace_nsid_head(nsid)
         _nsid_ = Nsid(nsid)
         current_node = self.root
@@ -333,6 +338,8 @@ class NamespaceHandle(Namespace):
         log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get: {self.prefix=}"))
         if nsid == self.delineator:
             real_nsid = self.prefix
+        elif is_valid_nsid_ref(nsid):
+            real_nsid = self.prefix + get_nsid_from_ref(nsid)
         else:
             real_nsid = self.prefix + nsid
 

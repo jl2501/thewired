@@ -29,6 +29,7 @@ class NamespaceConfigParser2(object):
     """
     def __init__(self, 
             namespace=None,
+            lookup_ns=None,
             node_factory:type=NamespaceNodeBase,
             callback_target_keys:Union[List[str],None]=None,
             input_mutator_callback:Union[Callable, None]=None):
@@ -74,6 +75,8 @@ class NamespaceConfigParser2(object):
         self._input_mutator_targets = callback_target_keys if callback_target_keys else list()
         self._input_mutator = input_mutator_callback if input_mutator_callback else lambda x,y: (x,y)
         self.ns = namespace if namespace else Namespace()
+        #-TODO: use seperate lookup ns
+        self.lookup_ns = lookup_ns if lookup_ns else self.ns
 
 
 
@@ -96,6 +99,7 @@ class NamespaceConfigParser2(object):
 
         log.debug(f"enter: {self.ns=} {prefix=} {dictConfig=}")
         ns = self.ns
+        lookup_ns = self.lookup_ns
 
         try:
             dictConfig.keys()
@@ -152,9 +156,8 @@ class NamespaceConfigParser2(object):
                         if isinstance(dictConfig[current_key], str):
                             if nsid.is_valid_nsid_link(dictConfig[current_key]):
                                 log.debug(f"found symbolic link to NSID: {current_key=}")
-                            elif nsid.is_valid_nsid_ref(dictConfig[current_key]): 
-                                log.debug(f"found NSID reference: {current_key=}")
-                                setattr(current_node, current_key, ns.get(dictConfig[current_key]))
+                                _value = lookup_ns.get(dictConfig[current_key])
+                                setattr(current_node, current_key, _value)
                         else:
                             setattr(current_node, current_key, dictConfig[current_key])
 
