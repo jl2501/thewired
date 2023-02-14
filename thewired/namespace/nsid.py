@@ -271,7 +271,7 @@ def nsid_basename(nsid, separator='.'):
     return str(nsid).split(separator)[-1]
 
 def get_nsid_from_ref(nsidref):
-    return nsidlref.split(Nsid.nsid_ref_prefix)[1]
+    return nsidref.split(Nsid.nsid_ref_prefix)[1]
 
 def get_nsid_from_link(nsidlink):
     return nsidlink.split(Nsid.nsid_link_prefix)[1]
