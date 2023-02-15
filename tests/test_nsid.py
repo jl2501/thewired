@@ -139,7 +139,7 @@ class test_nsid(unittest.TestCase):
             validate_nsid(nsid)
     def test_get_nsid_from_link(self):
         nsidlink = 'nsid://.provider.aws.boto3.s3.buckets.get'
-        assert get_nsid_from_link(nsidref) == '.provider.aws.boto3.s3.buckets.get'
+        assert get_nsid_from_link(nsidlink) == '.provider.aws.boto3.s3.buckets.get'
 
 if __name__ == '__main__' :
     unittest.main()
