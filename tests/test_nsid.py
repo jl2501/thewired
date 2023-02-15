@@ -4,7 +4,7 @@ import unittest
 from thewired.namespace.nsid import Nsid, validate_nsid, is_valid_nsid_str
 from thewired.namespace.nsid import sanitize_nsid, make_child_nsid, get_parent_nsid
 from thewired.namespace.nsid import get_nsid_parts, find_common_prefix, strip_common_prefix
-from thewired.namespace.nsid import list_nsid_segments, get_nsid_ancestry, nsid_basename
+from thewired.namespace.nsid import list_nsid_segments, get_nsid_ancestry, nsid_basename, get_nsid_from_link
 from thewired.exceptions import InvalidNsidError
 
 class test_nsid(unittest.TestCase):
@@ -137,6 +137,9 @@ class test_nsid(unittest.TestCase):
         nsid='a.b.c'
         with self.assertRaises(InvalidNsidError):
             validate_nsid(nsid)
+    def test_get_nsid_from_link(self):
+        nsidlink = 'nsid://.provider.aws.boto3.s3.buckets.get'
+        assert get_nsid_from_link(nsidlink) == '.provider.aws.boto3.s3.buckets.get'
 
 if __name__ == '__main__' :
     unittest.main()
