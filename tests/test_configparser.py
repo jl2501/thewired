@@ -215,7 +215,8 @@ def test_parse_meta_nested_2():
     assert ns.root.topkey.subkey1.something_elses_thing == "some value"
 
 
-def test_parse_dynamic_type_1():
+def test_parse_dynamic_type_callable(caplog):
+    caplog.set_level(logging.DEBUG)
     def callfunc(self):
         s = "called callfunc!"
         print(s)
@@ -243,7 +244,8 @@ def test_parse_dynamic_type_1():
     #- always adds NamespaceNodeBase as a base type
     assert isinstance(ns.get('.topkey.subkey1'), NamespaceNodeBase)
     assert ns.get('.topkey.subkey1').__class__.__name__ == 'SomeTypeName'
-    assert callable(ns.get('.topkey.subkey1'))
+    subkey_node = ns.get('.topkey.subkey1')
+    assert callable(subkey_node)
     assert ns.root.topkey.subkey1() == "called callfunc!"
 
 
@@ -536,39 +538,21 @@ def test_parse_callable_node():
     assert(callable(ns.root.topkey.mutated_node))
     assert(ns.root.topkey.mutated_node() == 'called callfunc!')
 
-def test_parse_callable_node_recursive_param(caplog):
+def test_parse_dynamic_type_with_dynamic_init_param(caplog):
     #caplog.set_level(logging.DEBUG)
     log = logging.getLogger(f"{__name__}.test_parse_callable_node_recursive_param")
 
-    def callfunc(self):
-        s = "called callfunc!"
-        print(s)
-        return s
-
-
-    def input_mutator(dictConfig, key):
-        print("input_mutator called!")
-        mutated_config = dictConfig.copy()
-        mutated_config[key]['__type__']['name'] = 'MutatedTypeName'
-        mutated_config['mutated_node'] = mutated_config[key]
-        mutated_config.pop(key)
-        return mutated_config, 'mutated_node'
-
     test_dict = {
         "topkey" : {
-            "mutate_me" : {
+            "subkey" : {
                 "__type__" : {
-                    "name" : "SomeTypeName",
+                    "name" : "TestDynamicTypeWithDynamicInitParam",
                     "bases" : ["thewired.NamespaceNodeBase"],
                     "dict" : {
-                        "__call__" : callfunc,
                         "dynamic_argument" : {
-                            "__class__" : "thewired.DelegateNode",
+                            "__class__" : "thewired.testobjects.Something",
                             "__init__": {
-                                "delegate" : {
-                                    "__class__" :  "collections.defaultdict",
-                                    "__init__" : { "key1" : "value1" }
-                                }
+                                "arg1" : "arg1's value"
                             }
                         }
                     }
@@ -577,21 +561,13 @@ def test_parse_callable_node_recursive_param(caplog):
         }
     }
 
-
-    target_keys = ['mutate_me']
-    parser = NamespaceConfigParser2(callback_target_keys=target_keys, input_mutator_callback=input_mutator)
+    parser = NamespaceConfigParser2()
     ns = parser.parse(test_dict)
-    assert(ns.root.topkey.mutated_node.__class__.__name__ == 'MutatedTypeName')
-    assert(str(ns.root.topkey.mutated_node.nsid) == '.topkey.mutated_node')
-    assert(callable(ns.root.topkey.mutated_node))
-    assert(ns.root.topkey.mutated_node() == 'called callfunc!')
-
-    warnings.warn(f"{type(ns.root.topkey.mutated_node.dynamic_argument)}")
-    warnings.warn(f"{ns.root.topkey.mutated_node.dynamic_argument['__class__']}")
-    ###!!! this proves that in a dynamic typed class parsing, the dictionary is never actually parsed at all
-
-    #assert(isinstance(ns.root.topkey.mutated_node.dynamic_argument, thewired.DelegateNode))
-    #assert(ns.root.topkey.mutated_node.dynamic_argument['key1'] == 'value1')
+    print(f"{type(ns.root.topkey.subkey)=}")
+    print(f"{type(ns.root.topkey.subkey.dynamic_argument)=}")
+    assert(ns.root.topkey.subkey.__class__.__name__ == "TestDynamicTypeWithDynamicInitParam")
+    assert(isinstance(ns.root.topkey.subkey.dynamic_argument, thewired.testobjects.Something))
+    assert(ns.root.topkey.subkey.dynamic_argument.thing == "arg1's value")
 
 
 def test_parse_resolve_nsid_ref():

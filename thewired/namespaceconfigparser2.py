@@ -435,44 +435,49 @@ class NamespaceConfigParser2(object):
             return dict()
         try:
             init_params_config = dictConfig["__init__"]
-        except KeyError:
+        except KeyError as err:
             #- no __init__ key, leave it as an empty dict
-            log.debug("no __init__ key. returning empty dict")
-            return dict()
+            log.debug("no __init__ key. trying [__type__][dict]")
+            #return dict()
+            try:
+                init_params_config = dictConfig["__type__"]["dict"]
+            except KeyError as e:
+                log.debug("no ['__type__']['dict'] key found. returning empty dict")
+                return dict()
+
+
+        #- there is an "__init__" or ["__type__"]["dict"] subkey for this node factory parameter
+        log.debug("found meta subkey")
+        try:
+            init_param_names = init_params_config.keys()
+        except AttributeError:
+            log.debug(f"init_params_config is not a mapping: {init_params_config=}")
+            pass
 
         else:
-            #- there is an "__init__" subkey for this node factory parameter
-            log.debug("found __init__ subkey")
-            try:
-                init_param_names = init_params_config.keys()
-            except AttributeError:
-                log.debug(f"dictConfig[__init__] is not a mapping: {dictConfig['__init__']}")
-                pass
+            #- check the init params config for more nested meta keys
+            #- that case is when there are objects that first must be instantiated in order
+            #- to be passed as parameters into the node factory bare function to complete
+            #- the node factory function partial
+            for init_param_name in init_param_names:
+                log.debug(f"parsing {init_param_name=}")
+                log.debug(f"init_params_config[{init_param_name}]: {init_params_config[init_param_name]}")
+                if isinstance(init_params_config[init_param_name], Mapping):
+                    log.debug(f"init_params_config[{init_param_name=}] is a dict")
+                    if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
+                        log.debug(f"found recursive parameter definition: {init_param_name=}")
+                        log.debug(f"recursive parameter config: {init_params_config[init_param_name]=}")
 
-            else:
-                #- check the init params config for more nested meta keys
-                #- that case is when there are objects that first must be instantiated in order
-                #- to be passed as parameters into the node factory bare function to complete
-                #- the node factory function partial
-                for init_param_name in init_param_names:
-                    log.debug(f"parsing {init_param_name=}")
-                    log.debug(f"init_params_config[{init_param_name}]: {init_params_config[init_param_name]}")
-                    if isinstance(init_params_config[init_param_name], Mapping):
-                        log.debug(f"init_params_config[{init_param_name=}] is a dict")
-                        if set(init_params_config[init_param_name].keys()).intersection(set(self.meta_keys)):
-                            log.debug(f"found recursive parameter definition: {init_param_name=}")
-                            log.debug(f"recursive parameter config: {dictConfig['__init__'][init_param_name]=}")
-
-                            #- recusrsive call here
-                            init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
-
-                            log.debug(f"created new object: {init_params[init_param_name]=}")
-                        else:
-                            init_params[init_param_name] = dictConfig["__init__"][init_param_name]
+                        #- recursive call here
+                        #init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
+                        init_params[init_param_name] = self._create_factory(init_params_config[init_param_name], object)()
+                        log.debug(f"created new object: {init_params[init_param_name]=}")
                     else:
-                        log.debug(f"not a dict: directly assigning init_params[{init_param_name}]")
                         init_params[init_param_name] = init_params_config[init_param_name]
-                        log.debug(f"assigned: init_params_config[{init_param_name}]: {init_params_config[init_param_name]}")
+                else:
+                    log.debug(f"not a dict: directly assigning init_params[{init_param_name}]")
+                    init_params[init_param_name] = init_params_config[init_param_name]
+                    log.debug(f"assigned: init_params_config[{init_param_name}]: {init_params_config[init_param_name]}")
 
         log.debug(f"Exiting: {init_params=}")
         return init_params
