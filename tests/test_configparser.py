@@ -594,20 +594,22 @@ def test_parse_callable_node_recursive_param(caplog):
     #assert(ns.root.topkey.mutated_node.dynamic_argument['key1'] == 'value1')
 
 
-#def test_parse_resolve_nsid_ref():
-#    lookup_ns = Namespace()
-#    lookup_ns.add(".a.b.c.d.e.f.g")
-#
-#    test_dict = {
-#        "topkey" : {
-#            "subkey" : {
-#                "referring_key" : { "nsid://.a.b.c.d" }
-#            }
-#        }
-#    }
-#
-#    parser = NamespaceConfigParser2(lookup_ns=lookup_ns)
-#    ns = parser.parse(test_dict)
-#    assert(ns.root.topkey.subkey.referring_key == ".a.b.c.d")
-#    assert(ns.root.topkey.subkey.referring_key.nsid == ".a.b.c.d")
-#
+def test_parse_resolve_nsid_ref():
+    lookup_ns = Namespace()
+    lookup_ns.add(".a.b.c.d.e.f.g")
+
+    test_dict = {
+        "topkey" : {
+            "subkey" : {
+                "referring_key" : "nsid-ref://.a.b.c.d"
+            }
+        }
+    }
+
+    parser = NamespaceConfigParser2(lookup_ns=lookup_ns)
+    ns = parser.parse(test_dict)
+    assert(isinstance(ns.root.topkey, thewired.NamespaceNodeBase))
+    assert(isinstance(ns.root.topkey.subkey, thewired.NamespaceNodeBase))
+    assert(lookup_ns.root.a.b.c.d.__class__ == ns.root.topkey.subkey.referring_key.__class__)
+    assert(str(ns.root.topkey.subkey.referring_key.nsid) == ".a.b.c.d")
+
