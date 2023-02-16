@@ -1,4 +1,5 @@
-from thewired import DelegateNode, Namespace, NamespaceNodeBase
+from thewired import DelegateNode, CallableDelegateNode, Namespace, NamespaceNodeBase
+from thewired.testobjects import CallableSomething
 
 def test_delegate_1():
 
@@ -18,3 +19,12 @@ def test_delegate_1():
     assert(isinstance(node, DelegateNode))
     assert(node.get_a_x2()[0] == 15)
     assert(node.get_a_x2()[1] == 15)
+
+def test_callabledelegate():
+
+    ns = Namespace()
+    ns.add_exactly_one('.testing', CallableDelegateNode, CallableSomething(91))
+
+    node = ns.get('.testing')
+    assert(callable(node))
+    assert(node("mad crazy string, bro") == "Called with args=('mad crazy string, bro',) kwargs={}")
