@@ -6,15 +6,28 @@ this makes these objects importable
 """
 
 from thewired import NamespaceNodeBase, Namespace, Nsid
+from typing import Union
+NsidU = Union[str, Nsid]
 
 
 class Something(object):
     def __init__(self, arg1):
         self.thing = arg1
 
-from typing import Union
-NsidU = Union[str, Nsid]
+class CallableSomething(Something):
+    def __init__(self, arg1):
+        super().__init__(arg1)
 
+    def __call__(self, *args, **kwargs):
+        params = f"{args=} {kwargs=}"
+        ret = f"Called with {params}"
+        print(ret)
+        return ret
+
+
+class Something(object):
+    def __init__(self, arg1):
+        self.thing = arg1
 class SomeNodeType(NamespaceNodeBase):
     def __init__(self, something: Something, *, nsid: NsidU, namespace: Namespace):
         self.somethings_thing = something.thing

@@ -203,7 +203,10 @@ class NamespaceConfigParser2(object):
             log.debug("No factory: not a dict")
             return None
 
+        # create only the callable here
         node_factory_function = self._parse_meta_factory_function(dictConfig, default_factory)
+
+        # parse the parameters here (combined with the callable and returned as a partial)
         init_params = self._parse_meta_factory_function_params(dictConfig)
 
         log.debug(f"Exiting: {node_factory_function=} {init_params=}")
@@ -253,22 +256,6 @@ class NamespaceConfigParser2(object):
         try:
             dyty_name = dictConfig["__type__"]["name"]
             dyty_bases = dictConfig["__type__"]["bases"]
-
-            #- for callable nodes, this dict here must be parsed
-            #- and NSID references dereferenced
-            #- symbolic NSID links require the attribute to become a dynamic
-            #- property that, at dereftime, dynamically gets the value from the
-            #- namespace, asking for the node with the NSID-link name, and using its value
-            #- where the value is gotten from:
-            #- ???
-            #---  calling the node?
-            #----  then every ndoe must be callable
-            #----  can also have some kind of default value system other than calling... `.value?`?
-            #----  What happens in the recursive part of the static parser?
-            #----  aren't I going to need to be somewhat recursive here?
-            #----  How would a nested type work where inside of this dynamically typed object,
-            #----   say there is an argument which is also dynamic? or static? doesn't look like
-            #----   we will ever get that parsed if we don't parse the dict first
             dyty_dict = dictConfig["__type__"]["dict"]
 
             dyty_bases = self._parse_meta_factory_function_dynamic_bases(dyty_bases)
@@ -469,7 +456,6 @@ class NamespaceConfigParser2(object):
                         log.debug(f"recursive parameter config: {init_params_config[init_param_name]=}")
 
                         #- recursive call here
-                        #init_params[init_param_name] = self._create_factory(dictConfig["__init__"][init_param_name], object)()
                         init_params[init_param_name] = self._create_factory(init_params_config[init_param_name], object)()
                         log.debug(f"created new object: {init_params[init_param_name]=}")
                     else:
