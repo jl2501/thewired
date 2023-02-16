@@ -24,3 +24,16 @@ class DelegateNode(NamespaceNodeBase):
 
     def __dir__(self):
         return dir(self._delegate)
+
+class CallableDelegateNode(DelegateNode):
+    """
+    same as delegate node, but dunders must be instantiated into slots (can't be added after construction)
+    so, we add the __call__ dunder as part of the definition to make it callable
+
+    requires that the delegate itself is callable
+    """
+    def __init__(self, delegate, *, nsid, namespace):
+        super().__init__(delegate, nsid=nsid, namespace=namespace)
+
+    def __call__(self, *args, **kwargs):
+        return self._delegate(*args, **kwargs)
