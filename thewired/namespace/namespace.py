@@ -112,7 +112,7 @@ class Namespace(SimpleNamespace):
                 raise NamespaceLookupError(f"{current_node} has no attribute named '{nsid_segment}'") from e
             n += 1
 
-        log.debug(f"Exiting: {current_node=}")
+        log.debug(f"Exiting: {nsid=} | Returning this node: {current_node=}")
         return current_node
 
 
