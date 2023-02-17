@@ -23,12 +23,14 @@ class AddendumFormatter(Provider):
         implementor_state_namespace=None, pre_exec=None, post_exec=None):
         """
         Input:
-            addendum: string to be concatenated on to implementor object and eval'd
-            formatter: callable to pass the returned value of the implementor. Final
-                Return value comes from this method
             implementor_namespace: where to lookup the implmentor NSIDs
             implementor: NSID of object that implements the operations, or direct object
                 to use as an override
+            nsroot:
+            addendum: string to be concatenated on to implementor object and eval'd
+            formatter: callable to pass the returned value of the implementor. Final
+                Return value of provide() comes from this method
+            implementor_key:
             implementor_state_namespace: optional namespace to look into to dynamically
                 control which specific implementors are being used
                 Namespace structure is expected to mirror the implementors namespace and
@@ -42,12 +44,14 @@ class AddendumFormatter(Provider):
         """
         log = LoggerAdapter(logger, {'name_ext' : 'AddendumFormatter.__init__'})
         log.debug("Entering")
+        self.implementor_ns = implementor_namespace
+        #implementor can be an object or an NSID reference
+        self.nsroot = nsroot
+        self.key = implementor_key
+        self.formatter = lambda x: x
+        self.implementor_state_ns = implementor_state_namespace
         self._pre_exec = pre_exec
         self._post_exec = post_exec
-        self.implementor_ns = implementor_namespace
-        self.implementor_state_ns = implementor_state_namespace
-
-        self.formatter = lambda x: x
 
         if isinstance(implementor, str):
             #- treat as NSID
@@ -66,13 +70,11 @@ class AddendumFormatter(Provider):
         elif isinstance(addendum, Sequence):
             self._addendums.extend(addendum)
 
-        self.nsroot = nsroot
-        self.key = implementor_key
-
         if callable(formatter):
             self.formatter = formatter
         else:
             try:
+                #? formatter.split('.')[0] would be the same, no?
                 module_name = '.'.join(formatter.split('.')[0:-1][0])
                 formatter_name = formatter.split('.')[-1]
 
@@ -192,12 +194,21 @@ class AddendumFormatter(Provider):
             you'd like to control your list of iterators, so perhaps this behavior will
             change
         """
+
+        log = LoggerAdapter(logger, {'name_ext' : 'AddendumFormatter._get_implementor_iterator'})
+        log.debug("entering")
+
         #- find which implementor object(s) to use
         if self.implementor is None:
             #- use NSID if there is no direct object
-            implementor_root_node = self.implementor_ns.get(self.implementor_nsid)
-            imp_iter = implementor_root_node._list_leaves(nsids=True)
+            #implementor_root_node = self.implementor_ns.get(self.implementor_nsid)
+            #imp_iter = implementor_root_node._list_leaves(nsids=True)
+            log.debug(f"getting subnodes of {self.implementor_nsid=}")
+            implementors = list(filter(lambda x: isinstance(x, self.__class__), self.implementor_ns.get_subnodes(self.implementor_nsid)))
+            log.debug(f"got implementors {implementors=}")
+            imp_iter = list(zip([I.nsid for I in implementors], implementors))
         else:
+            log.debug("using provider-level direct implementor object override: {self.implementor=}")
             implementor = self.implementor
             #- make it an iterable
             if not isinstance(implementor, Iterable):
@@ -241,6 +252,7 @@ class AddendumFormatter(Provider):
         all_outputs = list()
         formatted_outputs = list()
         all_formatted_outputs = list()
+
         for nsid, implementor in imp_iter:
             if self.implementor_state_ns:
                 try:
