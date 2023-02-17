@@ -195,6 +195,10 @@ class AddendumFormatter(Provider):
             change
         """
 
+        # avoid circular import if this is at the top
+        from thewired import DelegateNode
+        # sad face
+
         log = LoggerAdapter(logger, {'name_ext' : 'AddendumFormatter._get_implementor_iterator'})
         log.debug("entering")
 
@@ -202,7 +206,7 @@ class AddendumFormatter(Provider):
         if self.implementor is None:
             #- use NSID if there is no direct object
             log.debug(f"getting subnodes of {self.implementor_nsid=}")
-            implementors = list(filter(lambda x: isinstance(x, self.__class__), self.implementor_ns.get_subnodes(self.implementor_nsid)))
+            implementors = list(filter(lambda x: isinstance(x, DelegateNode), self.implementor_ns.get_subnodes(self.implementor_nsid)))
             log.debug(f"got implementors {implementors=}")
             imp_iter = list(zip([I.nsid for I in implementors], implementors))
         else:
@@ -245,6 +249,8 @@ class AddendumFormatter(Provider):
         log.debug("kwargs: {}".format(kwargs))
 
         imp_iter = self._get_implementor_iterator()
+        #DEBUG
+        imp_iter = list(imp_iter)
         log.debug("got implementor iterator: {}".format(imp_iter))
         #- loop through all the iterators and apply the addendum
         all_outputs = list()
