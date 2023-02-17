@@ -99,7 +99,7 @@ class Namespace(SimpleNamespace):
 
         n = 0
         while current_node.nsid != _nsid_:
-            #log.debug(f"target {_nsid_=} != {current_node.nsid=}")
+            log.debug(f"target {_nsid_=} != {current_node.nsid=}")
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:

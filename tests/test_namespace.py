@@ -223,6 +223,15 @@ def test_get_subnodes():
     assert nsids == ['.a.few.nodes', '.a.few.nodes.here', '.a.few.nodes.here.and', '.a.few.nodes.here.and.there', '.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
 
 
+def test_get_subnodes_root():
+    ns = Namespace()
+    ns.add(".a.b.c")
+    subnodes = ns.get_subnodes('.')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a', '.a.b', '.a.b.c']
+
+
 def test_get_subnodes_from_handle():
     ns = Namespace()
     ns.add(".a.few.nodes.here.and.there.and.everywhere")
@@ -232,6 +241,16 @@ def test_get_subnodes_from_handle():
     nsids = [str(x.nsid) for x in subnodes]
 
     assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
+
+def test_get_subnodes_from_handle_root():
+    ns = Namespace()
+    ns.add(".a.b.c.d")
+    handle = ns.get_handle(".a.b")
+
+    subnodes = handle.get_subnodes('.')
+    nsids = [str(x.nsid) for x in subnodes]
+
+    assert nsids == ['.a.b.c', '.a.b.c.d']
 
 
 
