@@ -201,8 +201,6 @@ class AddendumFormatter(Provider):
         #- find which implementor object(s) to use
         if self.implementor is None:
             #- use NSID if there is no direct object
-            #implementor_root_node = self.implementor_ns.get(self.implementor_nsid)
-            #imp_iter = implementor_root_node._list_leaves(nsids=True)
             log.debug(f"getting subnodes of {self.implementor_nsid=}")
             implementors = list(filter(lambda x: isinstance(x, self.__class__), self.implementor_ns.get_subnodes(self.implementor_nsid)))
             log.debug(f"got implementors {implementors=}")
