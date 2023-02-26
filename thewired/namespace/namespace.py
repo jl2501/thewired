@@ -95,7 +95,7 @@ class Namespace(SimpleNamespace):
         self._validate_namespace_nsid_head(nsid)
         _nsid_ = Nsid(nsid)
         current_node = self.root
-        nsid_segments = list_nsid_segments(nsid)[1:] #- skip initial root segment
+        nsid_segments = list_nsid_segments(nsid)[1:] #- attribute names to get; skip initial empty string ""
 
         n = 0
         while current_node.nsid != _nsid_:
@@ -103,7 +103,7 @@ class Namespace(SimpleNamespace):
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
-                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments} at index {n}") from err
+                raise NamespaceInternalError(f"while looking for nsid \"{_nsid_}\", ran out of nsid_segments: {nsid_segments} at index {n} ({current_node=}") from err
             try:
                 current_node = getattr(current_node, nsid_segment)
                 if not isinstance(current_node, NamespaceNodeBase):

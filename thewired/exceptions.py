@@ -37,3 +37,9 @@ class NsidSanitizationError(NsidError):
 
 class InvalidNsidError(NsidError):
     pass
+
+class SecondLifeError(Exception):
+    pass
+
+class SecondLifeNsLookupError(SecondLifeError, NamespaceLookupError):
+    pass

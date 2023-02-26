@@ -9,7 +9,7 @@ from functools import partial
 
 from thewired.namespace import Namespace
 from thewired.namespace import NamespaceNode
-from thewired.namespace import NamespaceNodeBase
+from thewired.namespace import NamespaceNodeBase, SecondLifeNode
 from thewired.namespace.nsid import get_nsid_ancestry
 from thewired import NamespaceConfigParser
 from thewired import NamespaceConfigParser2
@@ -587,5 +587,29 @@ def test_parse_resolve_nsid_ref():
     assert(isinstance(ns.root.topkey, thewired.NamespaceNodeBase))
     assert(isinstance(ns.root.topkey.subkey, thewired.NamespaceNodeBase))
     assert(lookup_ns.root.a.b.c.d.__class__ == ns.root.topkey.subkey.referring_key.__class__)
+
+    #XXX the nsid-ref will break the NSIDs of the nodes that are referring at parse time
+    # it will always overwrite the node directly
     assert(str(ns.root.topkey.subkey.referring_key.nsid) == ".a.b.c.d")
 
+def test_parse_resolve_nsid_link():
+    log = logging.getLogger()
+    lookup_ns = Namespace()
+    lookup_ns.add(".a.b.c.d.e.f.g")
+
+    test_dict = {
+        "topkey" : {
+            "subkey" : {
+                "referring_key" : "nsid://.a.b.c.d"
+            }
+        }
+    }
+
+    parser = NamespaceConfigParser2(lookup_ns=lookup_ns)
+    ns = parser.parse(test_dict)
+    assert(isinstance(ns.root.topkey, thewired.NamespaceNodeBase))
+    assert(isinstance(ns.root.topkey.subkey, thewired.NamespaceNodeBase))
+    assert(isinstance(ns.root.topkey.subkey, SecondLifeNode))
+
+    assert str(ns.root.topkey.subkey.nsid) == ".topkey.subkey"
+    assert str(ns.root.topkey.subkey.referring_key.nsid) == ".a.b.c.d"

@@ -174,7 +174,7 @@ def make_child_nsid(parent_nsid, child, separator='.'):
 def get_parent_nsid(nsid, parent_num=1, separator='.'):
     validate_nsid(nsid)
     retval = separator.join(
-        nsid.split(separator)[0:-parent_num]
+        str(nsid).split(separator)[0:-parent_num]
     )
     if retval == '':
         return '.'
@@ -183,7 +183,7 @@ def get_parent_nsid(nsid, parent_num=1, separator='.'):
 
 
 def get_nsid_parts(nsid, separator='.'):
-    return nsid.split(separator)
+    return str(nsid).split(separator)
 
 def list_nsid_segments(nsid, separator='.', skip_root=False) -> List:
     if nsid == separator:
@@ -230,6 +230,8 @@ def strip_prefix(prefix, nsid, separator='.'):
 
 
 def strip_common_prefix(nsid1, nsid2, separator='.'):
+    nsid1 = str(nsid1)
+    nsid2 = str(nsid2)
     common_prefix = find_common_prefix(nsid1, nsid2, separator=separator)
     common_prefix_len = len(common_prefix.split(separator))
 
