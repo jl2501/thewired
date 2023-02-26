@@ -1,6 +1,6 @@
 import pytest
 
-from thewired.namespace import SecondLifeNode, Namespace
+from thewired.namespace import SecondLifeNode, Namespace, CallableDelegateNode
 from functools import partial
 
 @pytest.fixture
