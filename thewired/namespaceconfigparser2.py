@@ -7,7 +7,7 @@ from importlib import import_module
 from functools import partial
 
 from .namespace import Namespace
-from .namespace import NamespaceNodeBase
+from .namespace import NamespaceNodeBase, SecondLifeNode
 from .namespace import nsid
 
 from thewired.exceptions import NamespaceError
@@ -152,7 +152,7 @@ class NamespaceConfigParser2(object):
                         raise ValueError("Can't use 'None' as an attribute name for a node!")
                     else:
                         current_node = ns.get(prefix)
-                        log.debug(f"setting {current_node.nsid}.{current_key} to {dictConfig[current_key]}")
+                        log.debug(f"checking how to set {current_node.nsid}.{current_key} to {dictConfig[current_key]}")
                         if isinstance(dictConfig[current_key], str):
                             if nsid.is_valid_nsid_ref(dictConfig[current_key]):
                                 log.debug(f"found reference to NSID: {current_key=} {dictConfig[current_key]=}")
@@ -162,11 +162,15 @@ class NamespaceConfigParser2(object):
                             elif nsid.is_valid_nsid_link(dictConfig[current_key]):
                                 log.debug(f"Found symbolic link to NSID: {current_key=} {dictConfig[current_key]=}")
                                 log.debug(f"Creating type that can dereference symbolic NSIDs...")
-                                ###
-                                # change current node into a second life dict and put the attribute name as a key and the value as the symlink
-                                # secondlife node should deref the symlink behing the scenes every time the attribute is accessed
-                                ###
-                                pass
+                                current_nsid = current_node.nsid
+                                secondlife = { current_key: dictConfig[current_key] }
+                                factory = partial(SecondLifeNode,
+                                        nsid=current_node.nsid,
+                                        namespace=self.ns,
+                                        secondlife_ns=self.lookup_ns,
+                                        secondlife = secondlife)
+                                ns.remove(str(current_nsid))
+                                ns.add(current_nsid, factory)
                         else:
                             setattr(current_node, current_key, dictConfig[current_key])
 
