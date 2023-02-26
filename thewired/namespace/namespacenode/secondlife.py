@@ -7,46 +7,62 @@ Purpose:
 
     with the provider namespace configuration files and the implementor provisioner scripts, this allows us to chop into small pieces how much code we have to write to create new functional namespaces that can begin to organize the functionality of the implementor SDK into logical namespaces
 
- this functionality is essentially what the whole point of this library actually is. the rest of it is just shit I had to do to get this part in a way that is simple to digest, debug and maintain
-
- it is a refactor of the provider_map implementation in the original polyglot NamespaceNode code
 """
 
 from .base import NamespaceNodeBase
 from thewired.namespace.nsid import is_valid_nsid_link
+from thewired.exceptions import NamespaceLookupError,SecondLifeNsLookupError
+
+from logging import getLogger, LoggerAdapter
+
+logger = getLogger(__name__)
+
+
 
 class SecondLifeNode(NamespaceNodeBase):
-    def __init__(self, *args, nsid, namespace, secondlife=None, **kwargs):
+    def __init__(self, *args, nsid, namespace, secondlife_ns=None, secondlife=None, **kwargs):
         """
         Input:
             nsid: NSID string
             secondlife: attribute mapping dict
-                keys are nams of attributes to find in this node
+                keys are attributes to be implemented as lookups
                 values are either:
                     * callable - value of attribute is return value of callable
                     * NSID - value of the attribute is return value from invoking the Node given by the NSID
+                        - thus the node referred to must be callable
                     * anything else - if it doesn't match the others, return this value exactly as it is
         """
         super().__init__(*args, nsid=nsid, namespace=namespace, **kwargs)
         self._secondlife = secondlife
+        self._attribute_lookup_fail_canary = "__ATTRIBUTE_LOOKUP_FAIL_CANARY__"
+        self._secondlife_ns = secondlife_ns if secondlife_ns else self._ns
 
     def __getattr__(self, attr):
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__getattr__'))
+        log.debug("entering")
         secondlife_value = None
-        raw_attr_value = self._secondlife.get(attr, None)
+        raw_attr_value = self._secondlife.get(attr, self._attribute_lookup_fail_canary)
 
-        if not raw_attr_value:
+        if raw_attr_value == self._attribute_lookup_fail_canary:
             raise AttributeError(f"No such attribute: {attr}")
-
         if callable(raw_attr_value):
-            provider = raw_attr_value
-            secondlife_value = provider()
+            secondlife_value = raw_attr_value()
         elif is_valid_nsid_link(raw_attr_value):
-            print(f"VALID NSID DETECTED: {raw_attr_value}")
-            pass
-            #TODO: lookup NSID
+            log.debug(f"is_valid_nsid_link: {raw_attr_value=}")
+            try:
+                node = self._secondlife_ns.get(raw_attr_value)
+            except NamespaceLookupError as err:
+                raise SecondLifeNsLookupError(f"dynamic lookup of {raw_attr_value} failed") from err
+            if attr == "__call__":
+                secondlife_value = node()
+            else:
+                secondlife_value = node
         else:
             #- provider is not a callable nor an NSID
             #- whatever it is, just return it raw
             secondlife_value = raw_attr_value
 
         return secondlife_value
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(nsid={self.nsid}, namespace={self._ns}, secondlifens={self._secondlife_ns},secondlife={self._secondlife})"
