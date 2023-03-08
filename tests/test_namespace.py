@@ -5,7 +5,7 @@ import thewired.namespace
 from thewired.namespace.nsid import make_child_nsid
 from thewired.exceptions import InvalidNsidError, NamespaceLookupError
 from thewired.exceptions import NamespaceCollisionError
-from thewired.namespace import Namespace, NamespaceNodeBase
+from thewired.namespace import Namespace, NamespaceNodeBase, HandleNode
 
 class TestNamespace(unittest.TestCase):
     def test_default_instantiation(self):
@@ -181,7 +181,7 @@ class TestNamespace(unittest.TestCase):
     def test_get_nonexisting_handle(self):
         ns = Namespace()
         handle = ns.get_handle(".something.totally.new", create_nodes=True)
-        assert handle.get('.').nsid.nsid == ".something.totally.new"
+        assert str(handle.get('.')._delegate.nsid) == ".something.totally.new"
 
     def test_get_nonexisting_handle_fail(self):
         ns = Namespace()
@@ -194,7 +194,8 @@ class TestNamespace(unittest.TestCase):
         ns.add(".other.stuff.added.here.now")
 
         handle = ns.get_handle(".other.stuff")
-        assert isinstance(handle.get('.added.here'), NamespaceNodeBase)
+        #assert isinstance(handle.get('.added.here'), NamespaceNodeBase)
+        assert isinstance(handle.get('.added.here'), HandleNode)
 
     def test_handle_add(self):
         ns = Namespace()
@@ -240,7 +241,7 @@ def test_get_subnodes_from_handle():
     subnodes = handle.get_subnodes('.nodes.here.and.there')
     nsids = [str(x.nsid) for x in subnodes]
 
-    assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
+    assert nsids == ['.nodes.here.and.there.and', '.nodes.here.and.there.and.everywhere']
 
 def test_get_subnodes_from_handle_root():
     ns = Namespace()
@@ -250,7 +251,7 @@ def test_get_subnodes_from_handle_root():
     subnodes = handle.get_subnodes('.')
     nsids = [str(x.nsid) for x in subnodes]
 
-    assert nsids == ['.a.b.c', '.a.b.c.d']
+    assert nsids == ['.c', '.c.d']
 
 
 

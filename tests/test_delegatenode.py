@@ -17,6 +17,7 @@ def test_delegate_1():
 
     assert(isinstance(node, NamespaceNodeBase))
     assert(isinstance(node, DelegateNode))
+    assert node.a == 15
     assert(node.get_a_x2()[0] == 15)
     assert(node.get_a_x2()[1] == 15)
 

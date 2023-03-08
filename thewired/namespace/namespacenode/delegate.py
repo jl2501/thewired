@@ -1,5 +1,6 @@
 from .base import NamespaceNodeBase
 from logging import getLogger, LoggerAdapter
+from ..nsid import Nsid
 
 logger = getLogger(__name__)
 
@@ -9,6 +10,7 @@ class DelegateNode(NamespaceNodeBase):
     """
     def __init__(self, delegate, *, nsid, namespace):
         super().__init__(nsid=nsid, namespace=namespace)
+        self.nsid = Nsid(nsid)
         self._delegate = delegate
 
     def __getattr__(self, attr):

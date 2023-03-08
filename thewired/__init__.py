@@ -6,7 +6,7 @@ from thewired.provider import Provider, get_provider_classes
 from thewired.provider import AddendumFormatter, ParametizedCall, ProviderMap
 from .namespace import Namespace
 from .namespace import NamespaceNode
-from .namespace import NamespaceNodeBase, SecondLifeNode, DelegateNode, CallableDelegateNode
+from .namespace import NamespaceNodeBase, SecondLifeNode, DelegateNode, CallableDelegateNode, HandleNode
 from .namespace import Nsid
 from .namespaceconfigparser import NamespaceConfigParser
 from .namespaceconfigparser2 import NamespaceConfigParser2

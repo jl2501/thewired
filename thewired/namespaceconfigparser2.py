@@ -161,8 +161,8 @@ class NamespaceConfigParser2(object):
                                 setattr(current_node, current_key, _value)
                             elif nsid.is_valid_nsid_link(dictConfig[current_key]):
                                 log.debug(f"Found symbolic link to NSID: {current_key=} {dictConfig[current_key]=}")
-                                log.debug(f"Creating type that can dereference symbolic NSIDs...")
                                 current_nsid = current_node.nsid
+                                log.debug(f"Creating type that can dereference symbolic NSIDs. {current_node.nsid=}")
                                 secondlife = { current_key: dictConfig[current_key] }
                                 factory = partial(SecondLifeNode,
                                         nsid=current_node.nsid,
