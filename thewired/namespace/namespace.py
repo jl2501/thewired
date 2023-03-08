@@ -14,7 +14,7 @@ from typing import Union, List, Dict
 from warnings import warn
 
 from thewired.loginfo import make_log_adapter
-from .namespacenode import NamespaceNodeBase
+from .namespacenode import NamespaceNodeBase, HandleNode
 from thewired.namespace.nsid import Nsid, list_nsid_segments, get_parent_nsid, validate_nsid, get_nsid_ancestry, \
                                     strip_common_prefix, find_common_prefix, make_child_nsid, \
                                     nsid_basename, get_nsid_from_ref, is_valid_nsid_ref, get_nsid_from_link, \
@@ -100,6 +100,7 @@ class Namespace(SimpleNamespace):
         n = 0
         while current_node.nsid != _nsid_:
             log.debug(f"target {_nsid_=} != {current_node.nsid=}")
+            print(f"target {_nsid_=} != {current_node.nsid=}")
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
@@ -348,7 +349,7 @@ class NamespaceHandle(Namespace):
             real_nsid = self.prefix + nsid
 
         log.debug(f"getting {real_nsid=}")
-        return self.ns.get(real_nsid)
+        return HandleNode(self.ns.get(real_nsid), ns_handle=self)
 
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
@@ -374,7 +375,8 @@ class NamespaceHandle(Namespace):
         for attr_name in dir(start_node):
             attr = getattr(start_node, attr_name)
             if isinstance(attr, NamespaceNodeBase):
-                yield attr
+                handle_node = HandleNode(attr, self)
+                yield handle_node
                 next_nsid = '.' + self.strip_prefix(str(attr.nsid))
 
                 log.debug(f"{next_nsid=}")

@@ -10,3 +10,4 @@ from .namespacenode import NamespaceNode
 from .base import NamespaceNodeBase
 from .secondlife import SecondLifeNode
 from .delegate import DelegateNode, CallableDelegateNode
+from .handle import HandleNode
