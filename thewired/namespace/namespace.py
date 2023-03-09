@@ -99,8 +99,7 @@ class Namespace(SimpleNamespace):
 
         n = 0
         while current_node.nsid != _nsid_:
-            log.debug(f"target {_nsid_=} != {current_node.nsid=}")
-            print(f"target {_nsid_=} != {current_node.nsid=}")
+            #log.debug(f"target {_nsid_=} != {current_node.nsid=}")
             try:
                 nsid_segment = nsid_segments[n]
             except IndexError as err:
@@ -308,12 +307,30 @@ class Namespace(SimpleNamespace):
         Output:
         all the nodes that are descendants of the node with NSID given as start_node_nsid
         """
+        log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.get_subnodes"))
         start_node = self.get(start_node_nsid)
         for attr_name in dir(start_node):
             attr = getattr(start_node, attr_name)
             if isinstance(attr, NamespaceNodeBase):
+                log.debug(f"yielding {attr=}")
                 yield attr
                 yield from self.get_subnodes(str(attr.nsid))
+
+    def get_leaf_nodes(self, start_node_nsid):
+        """
+        return the nodes that are leaves
+        (its a leaf if none of the attributes link to other NamespaceNodes)
+        """
+        log = make_log_adapter(logger, self.__class__, "get_leaf_nodes")
+        start_node = self.get(start_node_nsid)
+        is_leaf = True
+        for attr_name in dir(start_node):
+            attr = getattr(start_node, attr_name)
+            if isinstance(attr, NamespaceNodeBase):
+                is_leaf = False
+                yield from self.get_leaf_nodes(str(attr.nsid))
+        if is_leaf:
+            yield start_node
 
 
 
@@ -376,12 +393,28 @@ class NamespaceHandle(Namespace):
             attr = getattr(start_node, attr_name)
             if isinstance(attr, NamespaceNodeBase):
                 handle_node = HandleNode(attr, self)
+                log.debug(f"yielding {handle_node=}")
                 yield handle_node
                 next_nsid = '.' + self.strip_prefix(str(attr.nsid))
 
                 log.debug(f"{next_nsid=}")
                 yield from self.get_subnodes(next_nsid)
 
+    def get_leaf_nodes(self, start_node_nsid):
+        """
+        return the nodes that are leaves
+        (its a leaf if none of the attributes link to other NamespaceNodes)
+        """
+        log = make_log_adapter(logger, self.__class__, "get_leaf_nodes")
+        start_node = self.get(start_node_nsid)
+        is_leaf = True
+        for attr_name in dir(start_node):
+            attr = getattr(start_node, attr_name)
+            if isinstance(attr, NamespaceNodeBase):
+                is_leaf = False
+                yield from self.get_leaf_nodes(str('.' + self.strip_prefix(attr.nsid)))
+        if is_leaf:
+            yield HandleNode(start_node, self)
 
     def strip_prefix(self, nsid:str) -> str:
         try:
