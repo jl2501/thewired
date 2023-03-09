@@ -10,6 +10,7 @@ Purpose:
 
 from logging import getLogger
 from .base import NamespaceNodeBase
+from .delegate import DelegateNode
 
 from thewired.namespace.nsid import strip_common_prefix
 
@@ -20,8 +21,7 @@ from thewired.loginfo import make_log_adapter
 logger = getLogger(__name__)
 
 
-class HandleNode(NamespaceNodeBase):
-#class HandleNode(object):
+class HandleNode(DelegateNode):
     """
     delegates all missed attribute lookups to <delegate> object via __getattr__
     overrides NSID as a property to strip the Handle prefix in the nsid
@@ -31,14 +31,13 @@ class HandleNode(NamespaceNodeBase):
         self._ns = ns_handle
 
     def __getattr__(self, attr):
-        print(f"__getattr__: {attr=}")
         return getattr(self._delegate, attr)
 
     def __str__(self):
         return str(self._delegate)
 
     def __repr__(self):
-        return repr(self._delegate)
+        return "HandleNode(" + repr(self._delegate) + ")"
 
     def __dir__(self):
         return dir(self._delegate)
@@ -46,7 +45,6 @@ class HandleNode(NamespaceNodeBase):
     @property
     def nsid(self):
         hnsid = strip_common_prefix(self._delegate.nsid, self._ns.prefix)[0]
-        print(f"{hnsid=}")
         return hnsid if hnsid and hnsid[0] == '.' else '.' + hnsid
 
     @nsid.setter
