@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-import thewired.namespace 
+import thewired.namespace
 from thewired.namespace.nsid import make_child_nsid
 from thewired.exceptions import InvalidNsidError, NamespaceLookupError
 from thewired.exceptions import NamespaceCollisionError
@@ -96,7 +96,7 @@ class TestNamespace(unittest.TestCase):
         nsid = '.now.three.nodes'
         with self.assertRaises(ValueError):
             new_node = ns.add_exactly_one(nsid)
-    
+
     def test_add_root_node(self):
         ns = Namespace()
         with self.assertRaises(NamespaceCollisionError):
@@ -266,3 +266,25 @@ def test_get_subnodes_from_nested_handles(caplog):
     nsids = [str(x.nsid) for x in subnodes]
 
     assert nsids == ['.a.few.nodes.here.and.there.and', '.a.few.nodes.here.and.there.and.everywhere']
+
+
+def test_get_leaf_nodes():
+    ns = Namespace()
+    ns.add('.a.b.c.d.e.f')
+    ns.add('.a.b.c.d.x.y')
+
+    leaves = ns.get_leaf_nodes('.')
+    leaf_nsids = [str(x.nsid) for x in leaves]
+
+    assert leaf_nsids == ['.a.b.c.d.e.f', '.a.b.c.d.x.y']
+
+def test_get_leaf_nodes_from_handle():
+    ns = Namespace()
+    ns.add('.a.b.c.d.e.f')
+    ns.add('.a.b.c.d.x.y')
+
+    handle = ns.get_handle('.a.b.c.d')
+    leaves = handle.get_leaf_nodes('.')
+    leaf_nsids = [str(x.nsid) for x in leaves]
+
+    assert leaf_nsids == ['.e.f', '.x.y']

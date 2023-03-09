@@ -22,7 +22,7 @@ class DelegateNode(NamespaceNodeBase):
         return str(self._delegate)
 
     def __repr__(self):
-        return repr(self._delegate)
+        return f"DelegateNode(" + repr(self._delegate) + ")"
 
     def __dir__(self):
         return dir(self._delegate)
