@@ -332,6 +332,9 @@ class Namespace(SimpleNamespace):
         if is_leaf:
             yield start_node
 
+    def __repr__(self):
+        return f"Namespace(root={self.root})"
+
 
 
 
@@ -362,6 +365,8 @@ class NamespaceHandle(Namespace):
             real_nsid = self.prefix
         elif is_valid_nsid_ref(nsid):
             real_nsid = self.prefix + get_nsid_from_ref(nsid)
+        elif is_valid_nsid_link(nsid):
+            real_nsid = self.prefix + get_nsid_from_link(nsid)
         else:
             real_nsid = self.prefix + nsid
 
@@ -425,4 +430,7 @@ class NamespaceHandle(Namespace):
 
         return strip_common_prefix(self.prefix, nsid)[1]
 
+
+    def __repr__(self):
+        return f"NamespaceHandle(root={self.root}, prefix={self.prefix})"
 
