@@ -259,14 +259,17 @@ class Namespace(SimpleNamespace):
         if not isinstance(start, NamespaceNodeBase):
             return start
 
-        key = nsid_basename(start.nsid.nsid)
+        key = nsid_basename(str(start.nsid))
         walk_dict[key] = dict()
 
 
         for attr_name in dir(start):
             if not attr_name.startswith('_') and not attr_name == "nsid":
                 attr = getattr(start, attr_name)
-                updated_dict = self.walk(start=attr, walk_dict=walk_dict[key])
+                if isinstance(attr, NamespaceNodeBase):
+                    updated_dict = self.walk(start=attr, walk_dict=walk_dict[key])
+                else:
+                    continue
 
                 if not isinstance(updated_dict, dict):
                     walk_dict[key][attr_name] = attr
