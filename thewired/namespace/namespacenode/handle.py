@@ -12,7 +12,7 @@ from logging import getLogger
 from .base import NamespaceNodeBase
 from .delegate import DelegateNode
 
-from thewired.namespace.nsid import strip_common_prefix
+from thewired.namespace.nsid import strip_common_prefix, Nsid
 
 from thewired.loginfo import make_log_adapter
 
@@ -45,7 +45,7 @@ class HandleNode(DelegateNode):
     @property
     def nsid(self):
         hnsid = strip_common_prefix(self._delegate.nsid, self._ns.prefix)[0]
-        return hnsid if hnsid and hnsid[0] == '.' else '.' + hnsid
+        return Nsid(hnsid) if hnsid and hnsid[0] == '.' else Nsid('.' + hnsid)
 
     @nsid.setter
     def nsid(self, new_nsid):
