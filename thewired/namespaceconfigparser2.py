@@ -96,8 +96,7 @@ class NamespaceConfigParser2(object):
             a namespace object representing the nodes specifed in the dictConfig object
         """
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.parse'))
-
-        log.debug(f"enter: {self.ns=} {prefix=} {dictConfig=}")
+        log.debug(f"entering: {self.ns=} {prefix=} {dictConfig=}")
         ns = self.ns
         lookup_ns = self.lookup_ns
 
@@ -127,7 +126,7 @@ class NamespaceConfigParser2(object):
                 if node_factory:
                     if current_key is None:
                         #add new node in place of / overwriting previous node
-                        log.debug("special case node path detected: overwrite previous node, place new one at {prefix=}")
+                        log.debug(f"special case node path detected: overwrite previous node, place new one at {prefix=}")
                         try:
                             ns.remove(prefix)
                         except NamespaceError as e:
@@ -175,7 +174,7 @@ class NamespaceConfigParser2(object):
                             setattr(current_node, current_key, dictConfig[current_key])
 
 
-                log.debug(f"{ns=}")
+                log.debug(f"exiting: {current_key=}")
 
         return ns
 
@@ -380,7 +379,7 @@ class NamespaceConfigParser2(object):
                     node_factory = getattr(nf_module, nf_symbol_name)
                 except AttributeError as err:
                     log.debug("specified factory function does not exist in specified module!")
-                    raise ValueError("parsed factory function does not exist in specified module!") from err
+                    raise ValueError(f"parsed factory function ({nf_symbol_name}) does not exist in specified module ({nf_module})!") from err
 
                 if not callable(node_factory):
                     log.debug(f"specified node factory is not callable! {dictConfig=}")

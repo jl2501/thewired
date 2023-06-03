@@ -43,9 +43,12 @@ class NamespaceNodeBase(SimpleNamespace):
         Input:
             nsid: namespace id of this node
         """
+        log = make_log_adapter(logger, self.__class__, "__init__")
+        log.debug(f"calling super().__init__: {nsid=} | {namespace=} | {args=} | {kwargs=}")
         super().__init__(*args, **kwargs)
         self.nsid = Nsid(nsid)
         self._ns = namespace
+        log.debug("exiting")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(nsid=\"{self.nsid}\")"

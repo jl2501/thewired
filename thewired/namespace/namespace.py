@@ -40,10 +40,13 @@ class Namespace(SimpleNamespace):
             prefix: what namespace prefix is applied to all nodes in this namespace
             default_node_factory: default factory for creating new Nodes in this namespace
         """
+        log = make_log_adapter(logger, self.__class__, "__init__")
+        log.debug("entering")
+        self.root = None
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
-
         self.root = self.default_node_factory(nsid=self._root_nsid, namespace=self)
+
 
 
 
@@ -53,12 +56,16 @@ class Namespace(SimpleNamespace):
             to make it look like everything that's actually under the namespacenode .root is
             actually directly part of the namespace object
         """
+        log = make_log_adapter(logger, self.__class__, "__getattr_")
+        log.debug(f"entering: {attr=}")
         return getattr(self.root, attr)
 
 
     def _validate_default_node_factory(self, func):
+        log = make_log_adapter(logger, self.__class__, "_validate_default_node_factory")
+        log.debug(f"entering: {func=}")
         if not callable(func):
-            raise ValueError(f"default_node_facotry must be callable!")
+            raise ValueError(f"default_node_factory must be callable!")
 
         try:
             x = func(nsid=".a.b.c", namespace=self)
@@ -91,7 +98,8 @@ class Namespace(SimpleNamespace):
             log.debug(f'getting node from NSID symlink')
             nsid = get_nsid_from_link(nsid)
         else:
-            log.debug(f'no nsid-ref nor nsid symlink found')
+            #log.debug(f'no nsid-ref nor nsid symlink found')
+            pass
         self._validate_namespace_nsid_head(nsid)
         _nsid_ = Nsid(nsid)
         current_node = self.root

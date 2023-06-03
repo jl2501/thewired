@@ -32,14 +32,18 @@ class SecondLifeNode(NamespaceNodeBase):
                         - thus the node referred to must be callable
                     * anything else - if it doesn't match the others, return this value exactly as it is
         """
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__init__'))
+        log.debug("entering")
+        log.debug(f"Calling super().__init__: {args=} | {nsid=} | {namespace=} | {kwargs=}")
         super().__init__(*args, nsid=nsid, namespace=namespace, **kwargs)
         self._secondlife = secondlife
         self._attribute_lookup_fail_canary = "__ATTRIBUTE_LOOKUP_FAIL_CANARY__"
         self._secondlife_ns = secondlife_ns if secondlife_ns else self._ns
+        log.debug("exiting")
 
     def __getattr__(self, attr):
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__getattr__'))
-        log.debug("entering")
+        log.debug(f"entering: {attr=}")
         secondlife_value = None
         raw_attr_value = self._secondlife.get(attr, self._attribute_lookup_fail_canary)
 
@@ -62,6 +66,7 @@ class SecondLifeNode(NamespaceNodeBase):
             #- whatever it is, just return it raw
             secondlife_value = raw_attr_value
 
+        log.debug(f"exiting: {secondlife_value=}")
         return secondlife_value
 
     def __repr__(self):
@@ -70,12 +75,16 @@ class SecondLifeNode(NamespaceNodeBase):
 
 class CallableSecondLifeNode(SecondLifeNode):
     def __init__(self, *args, nsid, namespace, secondlife_ns=None, secondlife=None, **kwargs):
-        super().__init__(self, *args, nsid=nsid, namespace=namespace, secondLife_ns=secondLife_ns, secondLife=secondLife, **kwargs)
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__init__'))
+        log.debug("entering")
+        log.debug(f"Calling super().__init__: {args=} | {nsid=} | {namespace=} | {secondlife_ns=} | {secondlife=} | {kwargs=}")
+        super().__init__(*args, nsid=nsid, namespace=namespace, secondLife_ns=secondlife_ns, secondLife=secondlife, **kwargs)
+        log.debug("exiting")
 
     def __call__(self, *args, **kwargs):
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__call__'))
-        log.debug("Entering")
-        callable_node = self.secondlife.get('__call__', self._attribute_lookup_fail_canary)
+        log.debug(f"Entering: {args=} | {kwargs=}")
+        callable_node = self._secondlife.get('__call__', self._attribute_lookup_fail_canary)
         if x == self._attribute_lookup_fail_canary:
             log.debug("No __call__ key in secondlifedict")
             return None

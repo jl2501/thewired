@@ -7,7 +7,7 @@ from thewired.provider import AddendumFormatter, ParametizedCall, ProviderMap
 from .namespace import Namespace
 from .namespace import NamespaceNode
 from .namespace import NamespaceNodeBase, SecondLifeNode, DelegateNode, CallableDelegateNode, HandleNode
-from .namespace import Nsid
+from .namespace import CallableSecondLifeNode, Nsid
 from .namespaceconfigparser import NamespaceConfigParser
 from .namespaceconfigparser2 import NamespaceConfigParser2
 from .nsidchainmap import NsidChainMap
