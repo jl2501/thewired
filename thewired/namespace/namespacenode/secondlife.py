@@ -32,7 +32,7 @@ class SecondLifeNode(NamespaceNodeBase):
                         - thus the node referred to must be callable
                     * anything else - if it doesn't match the others, return this value exactly as it is
         """
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__init__'))
+        log = LoggerAdapter(logger, dict(name_ext=f'SecondLifeNode.__init__'))
         log.debug("entering")
         log.debug(f"Calling super().__init__: {args=} | {nsid=} | {namespace=} | {kwargs=}")
         super().__init__(*args, nsid=nsid, namespace=namespace, **kwargs)
@@ -75,20 +75,20 @@ class SecondLifeNode(NamespaceNodeBase):
 
 class CallableSecondLifeNode(SecondLifeNode):
     def __init__(self, *args, nsid, namespace, secondlife_ns=None, secondlife=None, **kwargs):
-        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__init__'))
+        log = LoggerAdapter(logger, dict(name_ext=f'CallableSecondLifeNode.__init__'))
         log.debug("entering")
         log.debug(f"Calling super().__init__: {args=} | {nsid=} | {namespace=} | {secondlife_ns=} | {secondlife=} | {kwargs=}")
-        super().__init__(*args, nsid=nsid, namespace=namespace, secondLife_ns=secondlife_ns, secondLife=secondlife, **kwargs)
+        super().__init__(*args, nsid=nsid, namespace=namespace, secondlife_ns=secondlife_ns, secondlife=secondlife, **kwargs)
         log.debug("exiting")
 
     def __call__(self, *args, **kwargs):
         log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__call__'))
         log.debug(f"Entering: {args=} | {kwargs=}")
         callable_node = self._secondlife.get('__call__', self._attribute_lookup_fail_canary)
-        if x == self._attribute_lookup_fail_canary:
+        if callable_node == self._attribute_lookup_fail_canary:
             log.debug("No __call__ key in secondlifedict")
             return None
 
-        x = callable_node(*args, **args)
+        x = callable_node(*args, **kwargs)
         log.debug("secondlife['__call__']() returned {x}")
         return x

@@ -12,7 +12,8 @@ from typing import Union
 
 from thewired.namespace.nsid import Nsid
 
-from thewired.loginfo import make_log_adapter
+#from thewired.loginfo import make_log_adapter
+from logging import LoggerAdapter
 
 ###
 # type aliases
@@ -43,7 +44,7 @@ class NamespaceNodeBase(SimpleNamespace):
         Input:
             nsid: namespace id of this node
         """
-        log = make_log_adapter(logger, self.__class__, "__init__")
+        log = LoggerAdapter(logger, dict(name_ext=f"NamespaceNodeBase.__init__"))
         log.debug(f"calling super().__init__: {nsid=} | {namespace=} | {args=} | {kwargs=}")
         super().__init__(*args, **kwargs)
         self.nsid = Nsid(nsid)

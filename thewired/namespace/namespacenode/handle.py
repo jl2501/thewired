@@ -50,3 +50,21 @@ class HandleNode(DelegateNode):
     @nsid.setter
     def nsid(self, new_nsid):
         self._delegate.nsid = new_nsid
+
+
+
+class CallableHandleNode(HandleNode):
+    """
+    same as HandleNode, but dunders must be instantiated into slots (can't be added after construction)
+    so, we add the __call__ dunder as part of the definition to make it callable
+
+    requires that the delegate itself is callable
+    """
+    def __init__(self, real_node, ns_handle):
+        super().__init__(real_node, ns_handle)
+
+    def __call__(self, *args, **kwargs):
+        return self._delegate(*args, **kwargs)
+
+    def __repr__(self):
+        return "CallableHandleNode(" + repr(self._delegate) + ")"
