@@ -66,3 +66,20 @@ class SecondLifeNode(NamespaceNodeBase):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(nsid={self.nsid}, namespace={self._ns}, secondlifens={self._secondlife_ns},secondlife={self._secondlife})"
+
+
+class CallableSecondLifeNode(SecondLifeNode):
+    def __init__(self, *args, nsid, namespace, secondlife_ns=None, secondlife=None, **kwargs):
+        super().__init__(self, *args, nsid=nsid, namespace=namespace, secondLife_ns=secondLife_ns, secondLife=secondLife, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        log = LoggerAdapter(logger, dict(name_ext=f'{self.__class__.__name__}.__call__'))
+        log.debug("Entering")
+        callable_node = self.secondlife.get('__call__', self._attribute_lookup_fail_canary)
+        if x == self._attribute_lookup_fail_canary:
+            log.debug("No __call__ key in secondlifedict")
+            return None
+
+        x = callable_node(*args, **args)
+        log.debug("secondlife['__call__']() returned {x}")
+        return x
