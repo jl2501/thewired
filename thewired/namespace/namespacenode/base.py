@@ -49,6 +49,7 @@ class NamespaceNodeBase(SimpleNamespace):
         super().__init__(*args, **kwargs)
         self.nsid = Nsid(nsid)
         self._ns = namespace
+        self._cache = None
         log.debug("exiting")
 
     def __repr__(self):

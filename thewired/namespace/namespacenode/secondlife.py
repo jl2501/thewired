@@ -90,5 +90,6 @@ class CallableSecondLifeNode(SecondLifeNode):
             return None
 
         x = callable_node(*args, **kwargs)
-        log.debug("secondlife['__call__']() returned {x}")
+        log.debug(f"secondlife['__call__']() returned {x}")
+        self._cache = x
         return x
