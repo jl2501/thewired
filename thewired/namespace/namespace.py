@@ -14,7 +14,7 @@ from typing import Union, List, Dict
 from warnings import warn
 
 from thewired.loginfo import make_log_adapter
-from .namespacenode import NamespaceNodeBase, HandleNode
+from .namespacenode import NamespaceNodeBase, HandleNode, CallableHandleNode
 from thewired.namespace.nsid import Nsid, list_nsid_segments, get_parent_nsid, validate_nsid, get_nsid_ancestry, \
                                     strip_common_prefix, find_common_prefix, make_child_nsid, \
                                     nsid_basename, get_nsid_from_ref, is_valid_nsid_ref, get_nsid_from_link, \
@@ -40,10 +40,13 @@ class Namespace(SimpleNamespace):
             prefix: what namespace prefix is applied to all nodes in this namespace
             default_node_factory: default factory for creating new Nodes in this namespace
         """
+        log = make_log_adapter(logger, self.__class__, "__init__")
+        log.debug("entering")
+        self.root = None
         self._validate_default_node_factory(default_node_factory)
         self.default_node_factory = default_node_factory
-
         self.root = self.default_node_factory(nsid=self._root_nsid, namespace=self)
+
 
 
 
@@ -53,12 +56,16 @@ class Namespace(SimpleNamespace):
             to make it look like everything that's actually under the namespacenode .root is
             actually directly part of the namespace object
         """
+        log = make_log_adapter(logger, self.__class__, "__getattr_")
+        log.debug(f"entering: {attr=}")
         return getattr(self.root, attr)
 
 
     def _validate_default_node_factory(self, func):
+        log = make_log_adapter(logger, self.__class__, "_validate_default_node_factory")
+        log.debug(f"entering: {func=}")
         if not callable(func):
-            raise ValueError(f"default_node_facotry must be callable!")
+            raise ValueError(f"default_node_factory must be callable!")
 
         try:
             x = func(nsid=".a.b.c", namespace=self)
@@ -91,7 +98,8 @@ class Namespace(SimpleNamespace):
             log.debug(f'getting node from NSID symlink')
             nsid = get_nsid_from_link(nsid)
         else:
-            log.debug(f'no nsid-ref nor nsid symlink found')
+            #log.debug(f'no nsid-ref nor nsid symlink found')
+            pass
         self._validate_namespace_nsid_head(nsid)
         _nsid_ = Nsid(nsid)
         current_node = self.root
@@ -161,7 +169,7 @@ class Namespace(SimpleNamespace):
             log.debug(f"creating node: {self=} | {new_node_nsid=}")
             if i == len(nsid_segments) - 1:
                 try:
-                    log.debug(f"creating node w/ non-default factory: {node_factory=}")
+                    log.debug(f"creating leaf node w/ non-default factory: {node_factory=}")
                     new_node = node_factory(*args, nsid=new_node_nsid, namespace=self, **kwargs)
                 except TypeError as e:
                     raise TypeError(f"node_factory failed to create node: {str(e)}") from e
@@ -374,7 +382,11 @@ class NamespaceHandle(Namespace):
             real_nsid = self.prefix + nsid
 
         log.debug(f"getting {real_nsid=}")
-        return HandleNode(self.ns.get(real_nsid), ns_handle=self)
+        real_node = self.ns.get(real_nsid)
+        if callable(real_node):
+            return CallableHandleNode(real_node, ns_handle=self)
+        else:
+            return HandleNode(real_node, ns_handle=self)
 
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
