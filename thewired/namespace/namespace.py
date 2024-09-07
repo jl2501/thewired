@@ -291,7 +291,7 @@ class Namespace(SimpleNamespace):
         """
         Description:
             get a "handle" on a subnamespace. That is, return an object that can be used as a namespace object
-            that always operates on the subnamespace given in the handle_key.
+            that is "chrooted" to the subnamespace given in the handle_key.
 
         Input:
             handle_key: string/Nsid object representing where the handle's root is
@@ -391,10 +391,8 @@ class NamespaceHandle(Namespace):
 
     def add(self, nsid:Union[str,Nsid], *args, **kwargs) -> List[NamespaceNodeBase]:
         log = LoggerAdapter(logger, dict(name_ext=f"{self.__class__.__name__}.add: {self.prefix=}"))
-        real_nsid = self.prefix + nsid
-
-        log.debug(f"adding {real_nsid=}")
-        return self.ns.add(real_nsid, *args, **kwargs)
+        log.debug(f"adding {self.prefix+nsid=}")
+        return self.ns.add(self.prefix+nsid, *args, **kwargs)
 
 
     def remove(self, nsid:Union[str,Nsid]) -> NamespaceNodeBase:
