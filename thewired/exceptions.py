@@ -1,5 +1,8 @@
+class TheWiredError(Exception):
+    """Base class for all exceptions in thewired lib"""
+    pass
 
-class CollectiveEvalDelegateObjectError(AttributeError):
+class CollectiveEvalDelegateObjectError(TheWiredError, AttributeError):
     """
     Description:
         raised from within FilteredCollection objects collective_eval.
@@ -8,7 +11,7 @@ class CollectiveEvalDelegateObjectError(AttributeError):
     """
     pass
 
-class NamespaceError(Exception):
+class NamespaceError(TheWiredError):
     pass
 
 class NamespaceLookupError(NamespaceError, AttributeError):
@@ -23,13 +26,13 @@ class NamespaceConfigParsingError(NamespaceError, SyntaxError):
 class NamespaceInternalError(NamespaceError, RuntimeError):
     pass
 
-class ProviderError(RuntimeError):
+class ProviderError(TheWiredError, RuntimeError):
     pass
 
-class ProviderMapLookupError(KeyError):
+class ProviderMapLookupError(TheWiredError, KeyError):
     pass
 
-class NsidError(Exception):
+class NsidError(TheWiredError):
     pass
 
 class NsidSanitizationError(NsidError):
@@ -38,7 +41,7 @@ class NsidSanitizationError(NsidError):
 class InvalidNsidError(NsidError):
     pass
 
-class SecondLifeError(Exception):
+class SecondLifeError(TheWiredError):
     pass
 
 class SecondLifeNsLookupError(SecondLifeError, NamespaceLookupError):
